@@ -1,0 +1,16 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "assembly debug",
+            "program": "${workspaceFolder}/asembler",
+            "args": ["-o", "output.o", "./tests/assembly/test1.asm"],
+            "cwd": "${workspaceFolder}"
+        },
+    ]
+}

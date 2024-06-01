@@ -1,0 +1,21 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${default}",
+                "${workspaceFolder}/inc",
+                "${workspaceFolder}/inc/assembly",
+                "${workspaceFolder}/misc/parser",
+                "${workspaceFolder}/misc/scanner",
+                "${workspaceFolder}/inc/instruction"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
