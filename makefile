@@ -1,25 +1,4 @@
-ASSEMBLY_INC_DIR = ./inc/assembly
-
-PARSER_INC = ./misc/parser/
-SCANNER_INC = ./misc/scanner/
-INSTRUCTION_INC = ./inc/instruction/
-
-FLEX_SOURCE = ./misc/scanner.l 
-BISON_SOURCE = ./misc/parser.yy
-BISON_OUTPUT = ./misc/parser/parser.cpp
-
-UTIL = ./inc/
-UTIL_SOURCE = $(wildcard ./src/*.cpp)
-INSTRUCTION_SOURCE = $(wildcard ./src/instruction/*.cpp)
-
-ASSEMBLY_INCLUDES = -I${ASSEMBLY_INC_DIR} -I${INSTRUCTION_INC} -I${PARSER_INC} -I${SCANNER_INC} -I${UTIL}
-ASSEMBLY_SOURCE =
-ASSEMBLY_SOURCE += $(wildcard ./src/Assembly/*.cpp)
-ASSEMBLY_SOURCE += ./misc/parser/parser.cpp
-ASSEMBLY_SOURCE += ./misc/scanner/scanner.cpp
-ASSEMBLY_SOURCE += ${UTIL_SOURCE}
-ASSEMBLY_SOURCE += ${INSTRUCTION_SOURCE}
-ASSEMBLY_OUTPUT = -o ./asembler
+SUCCESS = "$(COLOR_BLUE)Success!$(COLOR_END)"
 
 #LINKER_INCLUDE_DIR = ./inc/linker
 #LINKER_INCLUDES = -I${LINKER_INCLUDE_DIR} -I${UTIL}
@@ -37,7 +16,6 @@ ASSEMBLY_OUTPUT = -o ./asembler
 #EMULATOR_OUTPUT = -o ./emulator
 
 DEBUG_ENABLED = 0
-GPP_FLAGS = 
 
 all: flex bison asm
 	@echo "$(COLOR_GREEN)Build successful!$(COLOR_END)"
@@ -52,33 +30,40 @@ all: flex bison asm
 #	@g++ -g ${LINKER_INCLUDES} ${GPP_FLAGS} ${LINKER_SOURCE} ${LINKER_OUTPUT}
 #	@echo "$(COLOR_BLUE)Success!$(COLOR_END)"
 
+#asm:
+#	@echo "Building assembly..."
+#	@g++ -g ${ASSEMBLY_INCLUDES} ${GPP_FLAGS} ${ASSEMBLY_SOURCE} ${ASSEMBLY_OUTPUT}
+#	@echo ${SUCCESS}
+
+all: flex bison asm
+
+ASM_DIR = ./inc/assembly/
+
 asm:
 	@echo "Building assembly..."
-	@g++ -g ${ASSEMBLY_INCLUDES} ${GPP_FLAGS} ${ASSEMBLY_SOURCE} ${ASSEMBLY_OUTPUT}
-	@echo "$(COLOR_BLUE)Success!$(COLOR_END)"
+	@$(MAKE) -s asm -C $(ASM_DIR)
+	@echo ${SUCCESS}
 
-flex:
+FLEX_DIR = ./misc/
+BISON_DIR = ./misc/
+
+flex: 
 	@echo "Building flex..."
-	@flex ${FLEX_SOURCE}
-	@echo "$(COLOR_BLUE)Success!$(COLOR_END)"
+	@$(MAKE) -s flex -C $(FLEX_DIR)
+	@echo ${SUCCESS}
 
 bison:
 	@echo "Building bison..."
-	@bison  -o ${BISON_OUTPUT} ${BISON_SOURCE} -v
-	@echo "$(COLOR_BLUE)Success!$(COLOR_END)"
+	@$(MAKE) -s bison -C $(BISON_DIR)
+	@echo $(SUCCESS)
 
 clean:
-	@rm -rf misc/scanner/*.cpp misc/scanner/*.hpp
-	@rm -rf misc/parser/* misc/parser/*.hpp
-	@rm -rf ./asembler
-	@rm -rf ./linker
-	@rm -rf ./*.out
-	@rm -rf ./*.o
-	@rm -rf ./emulator
-	@rm -rf ./tests/output*.o
-	@echo "Clean finished!"
+	@echo "Cleaning..."
+	@$(MAKE) -s clean -C $(BISON_DIR)
+	@rm -rf asembler
+	@echo $(SUCCESS)
 
-# coloring util
+## coloring util
 COLOR_GREEN=\033[0;32m
 COLOR_RED=\033[0;31m
 COLOR_BLUE=\033[0;34m

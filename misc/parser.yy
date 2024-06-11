@@ -1,8 +1,8 @@
 %skeleton "lalr1.cc" // -*- C++ -*-
 %require "3.5.1"
 %language "C++"
-%defines "./misc/parser/parser.hpp"
-%output  "./misc/parser/parser.cpp"
+%defines "./parser/parser.hpp"
+%output  "./parser/parser.cpp"
 
 %defines
 %define api.token.raw
@@ -102,8 +102,18 @@
 %%
 
 NT_Program:
-    NT_Program NT_Line { assembly.FinishInstruction(); }
-    | NT_Line { assembly.FinishInstruction(); }
+    NT_Program NT_Line
+    {
+        AsmResult result = assembly.FinishInstruction();
+        if (result != ASM_RESULT_SUCCESS)
+            throw AssemblyException(AsmResultToString[result]);
+    }
+    | NT_Line
+    {
+        AsmResult result = assembly.FinishInstruction();
+        if (result != ASM_RESULT_SUCCESS)
+            throw AssemblyException(AsmResultToString[result]);
+    }
     | EOF
     ;
 

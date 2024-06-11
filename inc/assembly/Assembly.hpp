@@ -3,8 +3,6 @@
 
 #include "Utility.hpp"
 #include "AssemblyInstruction.hpp"
-//#include "AssemblyUtil.hpp"
-//#include "InstructionUtil.hpp"
 
 #include <vector>
 #include <memory>
@@ -16,27 +14,44 @@ public:
     Assembly();
     ~Assembly() {};
 
+/// @brief Parser API
+/// Used in next order: SetInstruction, [SetOperand, SetOperand, SetMultipleOperands...], FinishInstruction
     void SetInstruction(eInstructionIdentifier instruction, eInstructionType type);
     void SetOperand(std::string value, eOperandType type);
     void SetOperand(ParserOperand& operand);
     void SetMultipleOperands(std::vector<ParserOperand> operands);
-    
-    void FinishInstruction();
+    AsmResult FinishInstruction();
+
+/// @brief Used for resloving backreferences
     void ContinueParsing();
 
+/// @brief Used for printing generated ASM structures
+/// @param outFile - path to output file.
     void PrintProgram(std::string outFile);
 private:
+    // labels and directives
+    AsmResult HandleLabel();
+    AsmResult HandleDirective();
+    AsmResult HandleInstruction();
 
-    void AnalyzeInstruction();
+    AsmResult CalculateOperandsValue();
+    AsmResult WriteInstructionToSection(const AssemblyInstruction::s_ptr& instruction);
 
-    eOperandType GetInstructionOperandType() const;
+    uint16_t GetSymbolValue(const std::string& name);
+    uint16_t GetLiteralValue(const std::string& literal);
+    void inline IncrementLocationCounter(uint32_t amount);
 
-    AssemblyInstruction::s_ptr m_currentInstruction;
-    Section::s_ptr m_currentSection;
-    std::vector<AssemblyInstruction::s_ptr> m_program;
+    AssemblyInstruction::s_ptr mCurrentInstruction;
+    Section::s_ptr mCurrentSection;
 
-    bool m_end; // .END encountered
-    uint32_t m_locationCounter;
+    SectionTable mSectionTable;
+    SymbolTable mSymbolTable;
+    RelocationTable mRelocationTable;
+    ForwardRefferenceTable mForwardRefTable;
+
+    std::vector<AssemblyInstruction::s_ptr> mProgram;
+
+    bool mEnd; // .END encountered
 };
 
 #endif

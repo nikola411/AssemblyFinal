@@ -42,7 +42,7 @@
 
 
 // Unqualified %code blocks.
-#line 34 "./misc/parser.yy"
+#line 34 "./parser.yy"
 
     #include <memory>
     #include <vector>
@@ -51,7 +51,7 @@
     #include "Utility.hpp"
     #include "Driver.hpp"
 
-#line 55 "./misc/parser/parser.cpp"
+#line 55 "./parser/parser.cpp"
 
 
 #ifndef YY_
@@ -143,7 +143,7 @@
 #define YYRECOVERING()  (!!yyerrstatus_)
 
 namespace yy {
-#line 147 "./misc/parser/parser.cpp"
+#line 147 "./parser/parser.cpp"
 
   /// Build a parser object.
   parser::parser (Driver& drv_yyarg, Assembly& assembly_yyarg)
@@ -717,179 +717,187 @@ namespace yy {
           switch (yyn)
             {
   case 2: // NT_Program: NT_Program NT_Line
-#line 105 "./misc/parser.yy"
-                       { assembly.FinishInstruction(); }
-#line 723 "./misc/parser/parser.cpp"
+#line 106 "./parser.yy"
+    {
+        AsmResult result = assembly.FinishInstruction();
+        if (result != ASM_RESULT_SUCCESS)
+            throw AssemblyException(AsmResultToString[result]);
+    }
+#line 727 "./parser/parser.cpp"
     break;
 
   case 3: // NT_Program: NT_Line
-#line 106 "./misc/parser.yy"
-              { assembly.FinishInstruction(); }
-#line 729 "./misc/parser/parser.cpp"
+#line 112 "./parser.yy"
+    {
+        AsmResult result = assembly.FinishInstruction();
+        if (result != ASM_RESULT_SUCCESS)
+            throw AssemblyException(AsmResultToString[result]);
+    }
+#line 737 "./parser/parser.cpp"
     break;
 
   case 14: // NT_LabelAndComment: LABEL
-#line 124 "./misc/parser.yy"
+#line 134 "./parser.yy"
     {
         assembly.SetInstruction(eInstructionIdentifier::LBL, eInstructionType::LABEL);
         assembly.SetOperand(yystack_[0].value.as < std::string > (), eOperandType::SYM);
     }
-#line 738 "./misc/parser/parser.cpp"
+#line 746 "./parser/parser.cpp"
     break;
 
   case 18: // NT_Directive: END
-#line 135 "./misc/parser.yy"
+#line 145 "./parser.yy"
     {
         assembly.SetInstruction(eInstructionIdentifier::END, eInstructionType::DIRECTIVE);
 
     }
-#line 747 "./misc/parser/parser.cpp"
+#line 755 "./parser/parser.cpp"
     break;
 
   case 19: // NT_DirectiveWithList: WORD NT_LiteralList
-#line 143 "./misc/parser.yy"
+#line 153 "./parser.yy"
     {
         assembly.SetInstruction(eInstructionIdentifier::WORD, eInstructionType::DIRECTIVE);
         assembly.SetMultipleOperands(yystack_[0].value.as < std::vector<ParserOperand> > ());
         
     }
-#line 757 "./misc/parser/parser.cpp"
+#line 765 "./parser/parser.cpp"
     break;
 
   case 20: // NT_DirectiveWithList: WORD NT_SymbolList
-#line 149 "./misc/parser.yy"
+#line 159 "./parser.yy"
     {
         assembly.SetInstruction(eInstructionIdentifier::WORD, eInstructionType::DIRECTIVE);
         assembly.SetMultipleOperands(yystack_[0].value.as < std::vector<ParserOperand> > ());
     }
-#line 766 "./misc/parser/parser.cpp"
+#line 774 "./parser/parser.cpp"
     break;
 
   case 21: // NT_DirectiveSingleArgument: SECTION SYMBOL
-#line 157 "./misc/parser.yy"
+#line 167 "./parser.yy"
     {
         assembly.SetInstruction(eInstructionIdentifier::SECTION, eInstructionType::DIRECTIVE);
         assembly.SetOperand(yystack_[0].value.as < std::string > (), eOperandType::SYM);
     }
-#line 775 "./misc/parser/parser.cpp"
+#line 783 "./parser/parser.cpp"
     break;
 
   case 22: // NT_DirectiveSingleArgument: SKIP LITERAL
-#line 162 "./misc/parser.yy"
+#line 172 "./parser.yy"
     {
         assembly.SetInstruction(eInstructionIdentifier::SKIP, eInstructionType::DIRECTIVE);
         assembly.SetOperand(yystack_[0].value.as < std::string > (), eOperandType::LTR);
     }
-#line 784 "./misc/parser/parser.cpp"
+#line 792 "./parser/parser.cpp"
     break;
 
   case 23: // NT_DirectiveWithSymbolList: NT_DirectiveIdentifier NT_SymbolList
-#line 170 "./misc/parser.yy"
+#line 180 "./parser.yy"
     {
         assembly.SetInstruction(yystack_[1].value.as < eInstructionIdentifier > (), eInstructionType::DIRECTIVE);
         assembly.SetMultipleOperands(yystack_[0].value.as < std::vector<ParserOperand> > ());
     }
-#line 793 "./misc/parser/parser.cpp"
+#line 801 "./parser/parser.cpp"
     break;
 
   case 24: // NT_DirectiveIdentifier: GLOBAL
-#line 177 "./misc/parser.yy"
+#line 187 "./parser.yy"
            { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::GLOBAL; }
-#line 799 "./misc/parser/parser.cpp"
+#line 807 "./parser/parser.cpp"
     break;
 
   case 25: // NT_DirectiveIdentifier: EXTERN
-#line 178 "./misc/parser.yy"
+#line 188 "./parser.yy"
              { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::EXTERN; }
-#line 805 "./misc/parser/parser.cpp"
+#line 813 "./parser/parser.cpp"
     break;
 
   case 26: // NT_ProcessorInstruction: HALT
-#line 183 "./misc/parser.yy"
+#line 193 "./parser.yy"
          { assembly.SetInstruction(eInstructionIdentifier::HALT, eInstructionType::PROCESSOR); }
-#line 811 "./misc/parser/parser.cpp"
+#line 819 "./parser/parser.cpp"
     break;
 
   case 27: // NT_ProcessorInstruction: INT
-#line 184 "./misc/parser.yy"
+#line 194 "./parser.yy"
           { assembly.SetInstruction(eInstructionIdentifier::INT, eInstructionType::PROCESSOR); }
-#line 817 "./misc/parser/parser.cpp"
+#line 825 "./parser/parser.cpp"
     break;
 
   case 28: // NT_ProcessorInstruction: IRET
-#line 185 "./misc/parser.yy"
+#line 195 "./parser.yy"
            { assembly.SetInstruction(eInstructionIdentifier::IRET, eInstructionType::PROCESSOR); }
-#line 823 "./misc/parser/parser.cpp"
+#line 831 "./parser/parser.cpp"
     break;
 
   case 29: // NT_ProcessorInstruction: RET
-#line 186 "./misc/parser.yy"
+#line 196 "./parser.yy"
           { assembly.SetInstruction(eInstructionIdentifier::RET, eInstructionType::PROCESSOR); }
-#line 829 "./misc/parser/parser.cpp"
+#line 837 "./parser/parser.cpp"
     break;
 
   case 30: // NT_BranchInstruction: NT_ConditionalJumpIdentifier NT_ConditionalJumpOperands
-#line 192 "./misc/parser.yy"
+#line 202 "./parser.yy"
     {
         assembly.SetInstruction(yystack_[1].value.as < eInstructionIdentifier > (), eInstructionType::BRANCH);
         assembly.SetOperand(yystack_[0].value.as < ConditionalJumpOperands > ().gpr1, eOperandType::GPR);
         assembly.SetOperand(yystack_[0].value.as < ConditionalJumpOperands > ().gpr2, eOperandType::GPR);
         assembly.SetOperand(yystack_[0].value.as < ConditionalJumpOperands > ().operand);
     }
-#line 840 "./misc/parser/parser.cpp"
+#line 848 "./parser/parser.cpp"
     break;
 
   case 31: // NT_BranchInstruction: NT_UnconditionalJumpIdentifier NT_JumpOperand
-#line 199 "./misc/parser.yy"
+#line 209 "./parser.yy"
     {
         assembly.SetInstruction(yystack_[1].value.as < eInstructionIdentifier > (), eInstructionType::BRANCH);
         assembly.SetOperand(yystack_[0].value.as < ParserOperand > ());
     }
-#line 849 "./misc/parser/parser.cpp"
+#line 857 "./parser/parser.cpp"
     break;
 
   case 32: // NT_ConditionalJumpIdentifier: BEQ
-#line 206 "./misc/parser.yy"
+#line 216 "./parser.yy"
         { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::BEQ; }
-#line 855 "./misc/parser/parser.cpp"
+#line 863 "./parser/parser.cpp"
     break;
 
   case 33: // NT_ConditionalJumpIdentifier: BNE
-#line 207 "./misc/parser.yy"
+#line 217 "./parser.yy"
           { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::BNE; }
-#line 861 "./misc/parser/parser.cpp"
+#line 869 "./parser/parser.cpp"
     break;
 
   case 34: // NT_ConditionalJumpIdentifier: BGT
-#line 208 "./misc/parser.yy"
+#line 218 "./parser.yy"
           { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::BGT; }
-#line 867 "./misc/parser/parser.cpp"
+#line 875 "./parser/parser.cpp"
     break;
 
   case 35: // NT_ConditionalJumpOperands: "%" GPR "," "%" GPR "," NT_JumpOperand
-#line 213 "./misc/parser.yy"
+#line 223 "./parser.yy"
     {
         yylhs.value.as < ConditionalJumpOperands > ().gpr1 = yystack_[5].value.as < std::string > ();
         yylhs.value.as < ConditionalJumpOperands > ().gpr2 = yystack_[2].value.as < std::string > ();
         yylhs.value.as < ConditionalJumpOperands > ().operand = yystack_[0].value.as < ParserOperand > ();
     }
-#line 877 "./misc/parser/parser.cpp"
+#line 885 "./parser/parser.cpp"
     break;
 
   case 36: // NT_UnconditionalJumpIdentifier: JMP
-#line 221 "./misc/parser.yy"
+#line 231 "./parser.yy"
         { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::JMP; }
-#line 883 "./misc/parser/parser.cpp"
+#line 891 "./parser/parser.cpp"
     break;
 
   case 37: // NT_UnconditionalJumpIdentifier: CALL
-#line 222 "./misc/parser.yy"
+#line 232 "./parser.yy"
            { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::CALL; }
-#line 889 "./misc/parser/parser.cpp"
+#line 897 "./parser/parser.cpp"
     break;
 
   case 38: // NT_DataInstruction: NT_DataInstructionIdentifier NT_DataInstructionOperands
-#line 228 "./misc/parser.yy"
+#line 238 "./parser.yy"
     {
         if (yystack_[1].value.as < eInstructionIdentifier > () == eInstructionIdentifier::NOT && yystack_[0].value.as < std::vector<ParserOperand> > ().size() > 1)
         {
@@ -900,237 +908,237 @@ namespace yy {
         assembly.SetInstruction(yystack_[1].value.as < eInstructionIdentifier > (), eInstructionType::DATA);
         assembly.SetMultipleOperands(yystack_[0].value.as < std::vector<ParserOperand> > ());
     }
-#line 904 "./misc/parser/parser.cpp"
+#line 912 "./parser/parser.cpp"
     break;
 
   case 39: // NT_DataInstructionIdentifier: XCHG
-#line 241 "./misc/parser.yy"
+#line 251 "./parser.yy"
          { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::XCHG; }
-#line 910 "./misc/parser/parser.cpp"
+#line 918 "./parser/parser.cpp"
     break;
 
   case 40: // NT_DataInstructionIdentifier: ADD
-#line 242 "./misc/parser.yy"
+#line 252 "./parser.yy"
           { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::ADD; }
-#line 916 "./misc/parser/parser.cpp"
+#line 924 "./parser/parser.cpp"
     break;
 
   case 41: // NT_DataInstructionIdentifier: SUB
-#line 243 "./misc/parser.yy"
+#line 253 "./parser.yy"
           { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::SUB; }
-#line 922 "./misc/parser/parser.cpp"
+#line 930 "./parser/parser.cpp"
     break;
 
   case 42: // NT_DataInstructionIdentifier: MUL
-#line 244 "./misc/parser.yy"
+#line 254 "./parser.yy"
           { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::MUL; }
-#line 928 "./misc/parser/parser.cpp"
+#line 936 "./parser/parser.cpp"
     break;
 
   case 43: // NT_DataInstructionIdentifier: DIV
-#line 245 "./misc/parser.yy"
+#line 255 "./parser.yy"
           { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::DIV; }
-#line 934 "./misc/parser/parser.cpp"
+#line 942 "./parser/parser.cpp"
     break;
 
   case 44: // NT_DataInstructionIdentifier: NOT
-#line 246 "./misc/parser.yy"
+#line 256 "./parser.yy"
           { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::NOT; }
-#line 940 "./misc/parser/parser.cpp"
+#line 948 "./parser/parser.cpp"
     break;
 
   case 45: // NT_DataInstructionIdentifier: AND
-#line 247 "./misc/parser.yy"
+#line 257 "./parser.yy"
           { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::AND; }
-#line 946 "./misc/parser/parser.cpp"
+#line 954 "./parser/parser.cpp"
     break;
 
   case 46: // NT_DataInstructionIdentifier: OR
-#line 248 "./misc/parser.yy"
+#line 258 "./parser.yy"
           { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::OR;  }
-#line 952 "./misc/parser/parser.cpp"
+#line 960 "./parser/parser.cpp"
     break;
 
   case 47: // NT_DataInstructionIdentifier: XOR
-#line 249 "./misc/parser.yy"
+#line 259 "./parser.yy"
           { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::XOR; }
-#line 958 "./misc/parser/parser.cpp"
+#line 966 "./parser/parser.cpp"
     break;
 
   case 48: // NT_DataInstructionIdentifier: SHL
-#line 250 "./misc/parser.yy"
+#line 260 "./parser.yy"
           { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::SHL; }
-#line 964 "./misc/parser/parser.cpp"
+#line 972 "./parser/parser.cpp"
     break;
 
   case 49: // NT_DataInstructionIdentifier: SHR
-#line 251 "./misc/parser.yy"
+#line 261 "./parser.yy"
           { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::SHR; }
-#line 970 "./misc/parser/parser.cpp"
+#line 978 "./parser/parser.cpp"
     break;
 
   case 50: // NT_DataInstructionOperands: "%" GPR "," "%" GPR
-#line 256 "./misc/parser.yy"
+#line 266 "./parser.yy"
     {
         yylhs.value.as < std::vector<ParserOperand> > ().push_back(ParserOperand(yystack_[3].value.as < std::string > (), eOperandType::GPR));
         yylhs.value.as < std::vector<ParserOperand> > ().push_back(ParserOperand(yystack_[0].value.as < std::string > (), eOperandType::GPR));
     }
-#line 979 "./misc/parser/parser.cpp"
+#line 987 "./parser/parser.cpp"
     break;
 
   case 51: // NT_DataInstructionOperands: "%" GPR
-#line 260 "./misc/parser.yy"
+#line 270 "./parser.yy"
               { yylhs.value.as < std::vector<ParserOperand> > ().push_back(ParserOperand(yystack_[0].value.as < std::string > (), eOperandType::GPR)); }
-#line 985 "./misc/parser/parser.cpp"
+#line 993 "./parser/parser.cpp"
     break;
 
   case 52: // NT_MemoryInstruction: LD NT_Operand "," "%" GPR
-#line 266 "./misc/parser.yy"
+#line 276 "./parser.yy"
     {
         assembly.SetInstruction(eInstructionIdentifier::LD, eInstructionType::MEMORY);
         assembly.SetOperand(yystack_[3].value.as < ParserOperand > ());
         assembly.SetOperand(yystack_[0].value.as < std::string > (), eOperandType::GPR);
     }
-#line 995 "./misc/parser/parser.cpp"
+#line 1003 "./parser/parser.cpp"
     break;
 
   case 53: // NT_MemoryInstruction: ST "%" GPR "," NT_Operand
-#line 272 "./misc/parser.yy"
+#line 282 "./parser.yy"
     {
         assembly.SetInstruction(eInstructionIdentifier::ST, eInstructionType::MEMORY);
         assembly.SetOperand(yystack_[2].value.as < std::string > (), eOperandType::GPR);
         assembly.SetOperand(yystack_[0].value.as < ParserOperand > ());
     }
-#line 1005 "./misc/parser/parser.cpp"
+#line 1013 "./parser/parser.cpp"
     break;
 
   case 54: // NT_SpecialInstruction: CSRRD "%" CSR "," "%" GPR
-#line 282 "./misc/parser.yy"
+#line 292 "./parser.yy"
     {
         assembly.SetInstruction(eInstructionIdentifier::CSRRD, eInstructionType::SPECIAL);
         assembly.SetOperand(yystack_[3].value.as < std::string > (), eOperandType::CSR);
         assembly.SetOperand(yystack_[0].value.as < std::string > (), eOperandType::GPR);
     }
-#line 1015 "./misc/parser/parser.cpp"
+#line 1023 "./parser/parser.cpp"
     break;
 
   case 55: // NT_SpecialInstruction: CSRWR "%" GPR "," "%" CSR
-#line 288 "./misc/parser.yy"
+#line 298 "./parser.yy"
     {
         assembly.SetInstruction(eInstructionIdentifier::CSRWR, eInstructionType::SPECIAL);
         assembly.SetOperand(yystack_[3].value.as < std::string > (), eOperandType::GPR);
         assembly.SetOperand(yystack_[0].value.as < std::string > (), eOperandType::CSR);
     }
-#line 1025 "./misc/parser/parser.cpp"
+#line 1033 "./parser/parser.cpp"
     break;
 
   case 56: // NT_StackInstruction: NT_StackInstructionIdentifier "%" GPR
-#line 298 "./misc/parser.yy"
+#line 308 "./parser.yy"
     {
         assembly.SetInstruction(yystack_[2].value.as < eInstructionIdentifier > (), eInstructionType::STACK);
         assembly.SetOperand(yystack_[0].value.as < std::string > (), eOperandType::GPR);
     }
-#line 1034 "./misc/parser/parser.cpp"
+#line 1042 "./parser/parser.cpp"
     break;
 
   case 57: // NT_StackInstructionIdentifier: PUSH
-#line 305 "./misc/parser.yy"
+#line 315 "./parser.yy"
          { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::PUSH; }
-#line 1040 "./misc/parser/parser.cpp"
+#line 1048 "./parser/parser.cpp"
     break;
 
   case 58: // NT_StackInstructionIdentifier: POP
-#line 306 "./misc/parser.yy"
+#line 316 "./parser.yy"
           { yylhs.value.as < eInstructionIdentifier > () = eInstructionIdentifier::POP; }
-#line 1046 "./misc/parser/parser.cpp"
+#line 1054 "./parser/parser.cpp"
     break;
 
   case 59: // NT_SymbolList: NT_SymbolList "," SYMBOL
-#line 311 "./misc/parser.yy"
+#line 321 "./parser.yy"
                                { yystack_[2].value.as < std::vector<ParserOperand> > ().push_back(ParserOperand(yystack_[0].value.as < std::string > (), eOperandType::SYM)); yylhs.value.as < std::vector<ParserOperand> > () = yystack_[2].value.as < std::vector<ParserOperand> > (); }
-#line 1052 "./misc/parser/parser.cpp"
+#line 1060 "./parser/parser.cpp"
     break;
 
   case 60: // NT_SymbolList: SYMBOL
-#line 312 "./misc/parser.yy"
+#line 322 "./parser.yy"
              { yylhs.value.as < std::vector<ParserOperand> > ().push_back(ParserOperand(yystack_[0].value.as < std::string > (), eOperandType::SYM)); }
-#line 1058 "./misc/parser/parser.cpp"
+#line 1066 "./parser/parser.cpp"
     break;
 
   case 61: // NT_LiteralList: NT_LiteralList "," LITERAL
-#line 316 "./misc/parser.yy"
+#line 326 "./parser.yy"
                                  { yystack_[2].value.as < std::vector<ParserOperand> > ().push_back(ParserOperand(yystack_[0].value.as < std::string > (), eOperandType::LTR)); yylhs.value.as < std::vector<ParserOperand> > () = yystack_[2].value.as < std::vector<ParserOperand> > (); }
-#line 1064 "./misc/parser/parser.cpp"
+#line 1072 "./parser/parser.cpp"
     break;
 
   case 62: // NT_LiteralList: LITERAL
-#line 317 "./misc/parser.yy"
+#line 327 "./parser.yy"
               { yylhs.value.as < std::vector<ParserOperand> > ().push_back(ParserOperand(yystack_[0].value.as < std::string > (), eOperandType::LTR)); }
-#line 1070 "./misc/parser/parser.cpp"
+#line 1078 "./parser/parser.cpp"
     break;
 
   case 63: // NT_JumpOperand: SYMBOL
-#line 323 "./misc/parser.yy"
+#line 333 "./parser.yy"
               { yylhs.value.as < ParserOperand > ().value = yystack_[0].value.as < std::string > (); yylhs.value.as < ParserOperand > ().type = eOperandType::SYM; yylhs.value.as < ParserOperand > ().addressingType = eAddressingType::ADDR_DIRECT; }
-#line 1076 "./misc/parser/parser.cpp"
+#line 1084 "./parser/parser.cpp"
     break;
 
   case 64: // NT_JumpOperand: LITERAL
-#line 324 "./misc/parser.yy"
+#line 334 "./parser.yy"
               { yylhs.value.as < ParserOperand > ().value = yystack_[0].value.as < std::string > (); yylhs.value.as < ParserOperand > ().type = eOperandType::LTR; yylhs.value.as < ParserOperand > ().addressingType = eAddressingType::ADDR_DIRECT; }
-#line 1082 "./misc/parser/parser.cpp"
+#line 1090 "./parser/parser.cpp"
     break;
 
   case 65: // NT_Operand: "$" LITERAL
-#line 328 "./misc/parser.yy"
+#line 338 "./parser.yy"
                 { yylhs.value.as < ParserOperand > ().value = yystack_[0].value.as < std::string > (); yylhs.value.as < ParserOperand > ().type = eOperandType::LTR; yylhs.value.as < ParserOperand > ().addressingType = eAddressingType::ADDR_DIRECT; }
-#line 1088 "./misc/parser/parser.cpp"
+#line 1096 "./parser/parser.cpp"
     break;
 
   case 66: // NT_Operand: "$" SYMBOL
-#line 329 "./misc/parser.yy"
+#line 339 "./parser.yy"
                  { yylhs.value.as < ParserOperand > ().value = yystack_[0].value.as < std::string > (); yylhs.value.as < ParserOperand > ().type = eOperandType::SYM; yylhs.value.as < ParserOperand > ().addressingType = eAddressingType::ADDR_DIRECT; }
-#line 1094 "./misc/parser/parser.cpp"
+#line 1102 "./parser/parser.cpp"
     break;
 
   case 67: // NT_Operand: LITERAL
-#line 330 "./misc/parser.yy"
+#line 340 "./parser.yy"
               { yylhs.value.as < ParserOperand > ().value = yystack_[0].value.as < std::string > (); yylhs.value.as < ParserOperand > ().type = eOperandType::LTR; yylhs.value.as < ParserOperand > ().addressingType = eAddressingType::ADDR_MEMORY; }
-#line 1100 "./misc/parser/parser.cpp"
+#line 1108 "./parser/parser.cpp"
     break;
 
   case 68: // NT_Operand: SYMBOL
-#line 331 "./misc/parser.yy"
+#line 341 "./parser.yy"
              { yylhs.value.as < ParserOperand > ().value = yystack_[0].value.as < std::string > (); yylhs.value.as < ParserOperand > ().type = eOperandType::SYM; yylhs.value.as < ParserOperand > ().addressingType = eAddressingType::ADDR_MEMORY; }
-#line 1106 "./misc/parser/parser.cpp"
+#line 1114 "./parser/parser.cpp"
     break;
 
   case 69: // NT_Operand: "%" GPR
-#line 332 "./misc/parser.yy"
+#line 342 "./parser.yy"
               { yylhs.value.as < ParserOperand > ().value = yystack_[0].value.as < std::string > (); yylhs.value.as < ParserOperand > ().type = eOperandType::GPR; yylhs.value.as < ParserOperand > ().addressingType = eAddressingType::ADDR_DIRECT; }
-#line 1112 "./misc/parser/parser.cpp"
+#line 1120 "./parser/parser.cpp"
     break;
 
   case 70: // NT_Operand: "[" "%" GPR "]"
-#line 333 "./misc/parser.yy"
+#line 343 "./parser.yy"
                       { yylhs.value.as < ParserOperand > ().value = yystack_[1].value.as < std::string > (); yylhs.value.as < ParserOperand > ().type = eOperandType::GPR; yylhs.value.as < ParserOperand > ().addressingType = eAddressingType::ADDR_MEMORY; }
-#line 1118 "./misc/parser/parser.cpp"
+#line 1126 "./parser/parser.cpp"
     break;
 
   case 71: // NT_Operand: "[" "%" GPR "+" LITERAL "]"
-#line 334 "./misc/parser.yy"
+#line 344 "./parser.yy"
                                   { yylhs.value.as < ParserOperand > ().value = yystack_[3].value.as < std::string > (); yylhs.value.as < ParserOperand > ().offset = yystack_[1].value.as < std::string > (); yylhs.value.as < ParserOperand > ().offsetType = eOperandType::LTR; yylhs.value.as < ParserOperand > ().type = eOperandType::GPR; yylhs.value.as < ParserOperand > ().addressingType = eAddressingType::ADDR_MEMORY_OFFSET; }
-#line 1124 "./misc/parser/parser.cpp"
+#line 1132 "./parser/parser.cpp"
     break;
 
   case 72: // NT_Operand: "[" "%" GPR "+" SYMBOL "]"
-#line 335 "./misc/parser.yy"
+#line 345 "./parser.yy"
                                   { yylhs.value.as < ParserOperand > ().value = yystack_[3].value.as < std::string > (); yylhs.value.as < ParserOperand > ().offset = yystack_[1].value.as < std::string > (); yylhs.value.as < ParserOperand > ().offsetType = eOperandType::SYM; yylhs.value.as < ParserOperand > ().type = eOperandType::GPR; yylhs.value.as < ParserOperand > ().addressingType = eAddressingType::ADDR_MEMORY_OFFSET; }
-#line 1130 "./misc/parser/parser.cpp"
+#line 1138 "./parser/parser.cpp"
     break;
 
 
-#line 1134 "./misc/parser/parser.cpp"
+#line 1142 "./parser/parser.cpp"
 
             default:
               break;
@@ -1785,14 +1793,14 @@ namespace yy {
   const short
   parser::yyrline_[] =
   {
-       0,   105,   105,   106,   107,   111,   112,   113,   114,   115,
-     116,   117,   118,   122,   123,   131,   132,   133,   134,   142,
-     148,   156,   161,   169,   177,   178,   183,   184,   185,   186,
-     191,   198,   206,   207,   208,   212,   221,   222,   227,   241,
-     242,   243,   244,   245,   246,   247,   248,   249,   250,   251,
-     255,   260,   265,   271,   281,   287,   297,   305,   306,   311,
-     312,   316,   317,   323,   324,   328,   329,   330,   331,   332,
-     333,   334,   335
+       0,   105,   105,   111,   117,   121,   122,   123,   124,   125,
+     126,   127,   128,   132,   133,   141,   142,   143,   144,   152,
+     158,   166,   171,   179,   187,   188,   193,   194,   195,   196,
+     201,   208,   216,   217,   218,   222,   231,   232,   237,   251,
+     252,   253,   254,   255,   256,   257,   258,   259,   260,   261,
+     265,   270,   275,   281,   291,   297,   307,   315,   316,   321,
+     322,   326,   327,   333,   334,   338,   339,   340,   341,   342,
+     343,   344,   345
   };
 
   void
@@ -1824,9 +1832,9 @@ namespace yy {
 
 
 } // yy
-#line 1828 "./misc/parser/parser.cpp"
+#line 1836 "./parser/parser.cpp"
 
-#line 339 "./misc/parser.yy"
+#line 349 "./parser.yy"
 
 
 void yy::parser::error (const location_type& l, const std::string& m)

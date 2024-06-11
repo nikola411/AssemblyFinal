@@ -3,8 +3,7 @@
 
 #include "Driver.hpp"
 #include "Utility.hpp"
-//#include "Instruction.hpp"
-//#include "InstructionUtil.hpp"
+#include "Codes.hpp"
 
 #include <bitset>
 #include <memory>
@@ -51,10 +50,10 @@ int main(int argc, char* argv[])
 
         delete assembly;
     }
-    //catch(std::exception& e)
-    //{
-    //    std::cerr << "\033[31mERROR: " << e.what() << '\n';
-    //}
+    catch(const AssemblyException& e)
+    {
+       std::cerr << "\033[31mERROR: " << e.what() << '\n';
+    }
     catch(const std::exception& e)
     {
         std::cerr << "\033[31mERROR: " <<  e.what() << '\n';

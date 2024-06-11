@@ -9,7 +9,7 @@
 %}
 
 %option noyywrap nounput noinput batch
-%option outfile="./misc/scanner/scanner.cpp" header="./misc/scanner/scanner.hpp"
+%option outfile="./scanner/scanner.cpp" header="./scanner/scanner.hpp"
 
 %{
     #define YY_USER_ACTION  loc.columns (yyleng);

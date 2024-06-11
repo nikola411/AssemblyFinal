@@ -9,7 +9,15 @@
             "request": "launch",
             "name": "assembly debug",
             "program": "${workspaceFolder}/asembler",
-            "args": ["-o", "output.o", "./tests/assembly/test1.asm"],
+            "args": ["-o", "output.o", "./tests/end-to-end-tests/asm-test-1.asm"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "test_lib debug",
+            "program": "${workspaceFolder}/tests/out/test_lib/test_lib",
+            "args": [],
             "cwd": "${workspaceFolder}"
         },
     ]

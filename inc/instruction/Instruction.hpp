@@ -15,6 +15,9 @@ namespace InstructionOffsets
 
 struct Instruction
 {
+    Instruction() = default;
+    virtual ~Instruction() = default;
+
     uint8_t GetCode() const;
     uint8_t GetModifier() const;
     uint8_t GetRegisterA() const;
@@ -22,8 +25,15 @@ struct Instruction
     uint8_t GetRegisterC() const;
     uint16_t GetDisplacement() const;
 
-    virtual uint32_t GetData() const;
-    virtual ~Instruction() = default;
+    void SetCode(uint16_t value);
+    void SetModifier(uint16_t value);
+    void SetRegisterA(uint16_t value);
+    void SetRegisterB(uint16_t value);
+    void SetRegisterC(uint16_t value);
+    void SetDisplacement(uint16_t value);
+
+    uint32_t GetData() const;
+    void SetData(uint32_t);
 
     uint32_t data;
 };

@@ -10,7 +10,7 @@
 
 // Give Flex the prototype of yylex we want ...
 # define YY_DECL \
-  yy::parser::symbol_type yylex (Driver& drv, Assembly& asem)
+    yy::parser::symbol_type yylex (Driver& drv, Assembly& asem)
 // ... and declare it for the parser's sake.
 YY_DECL;
 

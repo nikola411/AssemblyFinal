@@ -30,7 +30,49 @@ uint16_t Instruction::GetDisplacement() const
     return (data >> InstructionOffsets::Displacement) & 0x0FFF;
 }
 
+void Instruction::SetCode(uint16_t value)
+{
+    data &= ~(0xF << InstructionOffsets::Code);
+    data |= (value & 0xF) << InstructionOffsets::Code;
+}
+
+void Instruction::SetModifier(uint16_t value)
+{
+
+    data &= ~(0xF << InstructionOffsets::Modifier);
+    data |= (value & 0xF) << InstructionOffsets::Modifier;
+}
+
+void Instruction::SetRegisterA(uint16_t value)
+{
+    data &= ~(0xF << InstructionOffsets::RegisterA);
+    data |= (value & 0xF) << InstructionOffsets::RegisterA;
+}
+
+void Instruction::SetRegisterB(uint16_t value)
+{
+    data &= ~(0xF << InstructionOffsets::RegisterB);
+    data |= (value & 0xF) << InstructionOffsets::RegisterB;
+}
+
+void Instruction::SetRegisterC(uint16_t value)
+{
+    data &= ~(0xF << InstructionOffsets::RegisterC);
+    data |= (value & 0xF) << InstructionOffsets::RegisterC;
+}
+
+void Instruction::SetDisplacement(uint16_t value)
+{
+    data &= ~(0xFFF << InstructionOffsets::Displacement);
+    data |= (value & 0xFFF) << InstructionOffsets::Displacement;
+}
+
 uint32_t Instruction::GetData() const
 {
     return data;
+}
+
+void Instruction::SetData(uint32_t data)
+{
+    this->data = data;
 }

@@ -32,7 +32,7 @@
 
 
 /**
- ** \file ./misc/parser/parser.hpp
+ ** \file ./parser/parser.hpp
  ** Define the yy::parser class.
  */
 
@@ -42,10 +42,10 @@
 // especially those whose name start with YY_ or yy_.  They are
 // private implementation details that can be changed or removed.
 
-#ifndef YY_YY_MISC_PARSER_PARSER_HPP_INCLUDED
-# define YY_YY_MISC_PARSER_PARSER_HPP_INCLUDED
+#ifndef YY_YY_PARSER_PARSER_HPP_INCLUDED
+# define YY_YY_PARSER_PARSER_HPP_INCLUDED
 // "%code requires" blocks.
-#line 14 "./misc/parser.yy"
+#line 14 "./parser.yy"
 
     #include "Assembly.hpp"
     
@@ -56,7 +56,7 @@
     using std::vector;
     using std::pair;
 
-#line 60 "./misc/parser/parser.hpp"
+#line 60 "./parser/parser.hpp"
 
 # include <cassert>
 # include <cstdlib> // std::abort
@@ -196,7 +196,7 @@
 #endif
 
 namespace yy {
-#line 200 "./misc/parser/parser.hpp"
+#line 200 "./parser/parser.hpp"
 
 
 
@@ -2344,9 +2344,9 @@ switch (yykind)
 
 
 } // yy
-#line 2348 "./misc/parser/parser.hpp"
+#line 2348 "./parser/parser.hpp"
 
 
 
 
-#endif // !YY_YY_MISC_PARSER_PARSER_HPP_INCLUDED
+#endif // !YY_YY_PARSER_PARSER_HPP_INCLUDED

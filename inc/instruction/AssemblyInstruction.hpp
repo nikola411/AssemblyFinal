@@ -2,20 +2,26 @@
 #define ASSEMBLY_INSTRUCTION_HPP
 
 #include "Instruction.hpp"
+#include "Codes.hpp"
+#include "ErrorHandling.hpp"
 
-struct AssemblyInstruction : public Instruction
+struct AssemblyInstruction
 {
-    AssemblyInstruction(){};
+    AssemblyInstruction() = default;
     ~AssemblyInstruction() = default;
 
-    uint32_t GetData() const override;
+    eOperandType GetOperandType() const;
+    eAddressingType GetAddressingType() const;
+
+    using s_ptr = std::shared_ptr<AssemblyInstruction>;
+
 
     eAddressingType addressing;
     eInstructionType type;
     eInstructionIdentifier identifier;
     std::vector<ParserOperand> operands;
 
-    typedef std::shared_ptr<AssemblyInstruction> s_ptr;
+    std::vector<InstructionPopulationMetadata> metadata;
 };
 
 #endif
