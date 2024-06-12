@@ -13,9 +13,9 @@ num2: .word 10
 result: .word 0
 
 .section .text
-.global _start
+.global start
 
-_start:
+start:
     ld num1, %r1      ; Load the value of num1 into register r1
     ld num2, %r2      ; Load the value of num2 into register r2
     add %r1, %r2      ; Add the values in r1 and r2, store the result in r2
@@ -23,6 +23,17 @@ _start:
     halt              ; Stop execution
 
 .end
+
+GPT_translate:
+
+0x920F0004  ; Load displacement for num1
+0x92010001  ; Load num1 into r1
+0x920F0008  ; Load displacement for num2
+0x92020002  ; Load num2 into r2
+0x50020001  ; ADD r2, r1
+0x82F0000C  ; Load displacement for result
+0x80020002  ; Store r2 into result
+0x00000000  ; HALT
 
 Program 2: Conditional Jump and Loop
 

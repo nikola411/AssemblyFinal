@@ -17,8 +17,8 @@ int main(int argc, char* argv[])
     std::cout << "Parsing arguments.\n";
     if (argc > 5 || argc < 4)
     {
-        std::cout << "FATAL! Wrong number of arguments! \n";
-        exit(-1);
+        std::cout << "\033[31mERROR: Wrong number of arguments! \n";
+        return -1;
     }
 
     string flag = string(argv[1]);
@@ -34,7 +34,8 @@ int main(int argc, char* argv[])
     std::cout << "Debug enabled: " << debug << "\n";
     if (flag != "-o")
     {
-        std::cout << "FATAL! No output flag specified! \n";
+        std::cout << "\033[31mERROR: No output flag specified! \n";
+        return -1;
     }
     std::cout << "Starting to read the input file.\n";
     // FINISH PARSING THE ARGUMENTS
@@ -45,14 +46,22 @@ int main(int argc, char* argv[])
         Driver driver(debug, assembly);
         driver.parse(input_file);
         assembly->ContinueParsing();
+
+        AssemblyErrorMetadata error = assembly->CheckForErrors(false);
+        if (error.statusCode != ASM_RESULT_SUCCESS)
+        {
+            std::cerr << "\033[31m ERROR: " << error.value << "\n";
+            return 0;
+        }
+
         
-        assembly->PrintProgram(output_file);
+        //assembly->PrintProgram(output_file);
 
         delete assembly;
     }
     catch(const AssemblyException& e)
     {
-       std::cerr << "\033[31mERROR: " << e.what() << '\n';
+       std::cerr << "\033[31m" << e.what() << '\n';
     }
     catch(const std::exception& e)
     {

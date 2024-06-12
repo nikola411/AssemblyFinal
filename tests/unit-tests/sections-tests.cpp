@@ -134,3 +134,52 @@ TEST(SectionTests, IsLiteralPresentInPool)
     ASSERT_EQ(section.IsLiteralPresentInPool(0xFF88), -1);
     ASSERT_EQ(section.IsLiteralPresentInPool(0x924F), 8);
 }
+
+TEST(SectionTests, ValidOffset)
+{
+    Section section;
+    section.data = std::vector<uint8_t>(16, 0x00);  // Initialize with 10 bytes of 0
+
+    section.WriteInstructionDisplacement(4, 0x123);
+    
+    EXPECT_EQ(section.data[4 + 0], 0x00);
+    EXPECT_EQ(section.data[4 + 1], 0x00);
+    EXPECT_EQ(section.data[4 + 2], 0x01);
+    EXPECT_EQ(section.data[4 + 3], 0x23);
+}
+
+TEST(SectionTests, InvalidOffset)
+{
+    Section section;
+    section.data = std::vector<uint8_t>(10, 0x00);  // Initialize with 10 bytes of 0
+
+    section.WriteInstructionDisplacement(8, 0x123);
+
+    // Ensure no changes were made
+    for (size_t i = 0; i < section.data.size(); ++i) {
+        EXPECT_EQ(section.data[i], 0x00);
+    }
+}
+
+TEST(SectionTests, OffsetAtBoundary)
+{
+    Section section;
+    section.data = std::vector<uint8_t>(8, 0xFF);  // Initialize with 6 bytes of 0xFF
+
+    section.WriteInstructionDisplacement(4, 0x0A0B);
+    EXPECT_EQ(section.data[4 + 0], 0xFF);
+    EXPECT_EQ(section.data[4 + 1], 0xFF);
+    EXPECT_EQ(section.data[4 + 2], 0xFA);
+    EXPECT_EQ(section.data[4 + 3], 0x0B);
+}
+
+TEST(SectionTests, VerifyMasking)
+{
+    Section section;
+    section.data = std::vector<uint8_t>(10, 0xFF);  // Initialize with 10 bytes of 0xFF
+
+    section.WriteInstructionDisplacement(4, 0x123);
+
+    EXPECT_EQ(section.data[6], 0xF1);  // 0xFF & 0xF0 | 0x01 = 0xF1
+    EXPECT_EQ(section.data[7], 0x23);
+}

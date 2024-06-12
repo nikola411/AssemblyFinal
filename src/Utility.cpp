@@ -1,5 +1,8 @@
 #include "Utility.hpp"
 
+#include <iomanip>
+#include <string>
+
 Symbol::s_ptr GetSymbol(const SymbolTable& table, const std::string& label)
 {
     for (const auto& entry : table)
@@ -8,6 +11,94 @@ Symbol::s_ptr GetSymbol(const SymbolTable& table, const std::string& label)
 
     return nullptr;
     ///sss///sss
+}
+
+std::string SymbolTableToString(const SymbolTable& table)
+{
+    std::stringstream stream;
+    stream << "\n";
+    int i = 0;
+    stream << std::setw(3) << std::setfill(' ') << ""
+        << std::setw(16) << std::setfill(' ') << "Name"
+        << std::setw(16) << std::setfill(' ') << "Section"
+        << std::setw(8) << std::setfill(' ') << "Offset"
+        << std::setw(8) << std::setfill(' ') << "Defined"
+        << std::setw(8) << std::setfill(' ') << "Extern"
+        << std::setw(8) << std::setfill(' ') << "Global"
+        << std::setw(8) << std::setfill(' ') << "Value"
+        << "\n";
+
+    for (const auto& symbol : table)
+    {
+        stream
+            << std::setw(3) << std::setfill(' ') << ++i
+            << std::setw(16) << std::setfill(' ') << symbol->name
+            << std::setw(16) << std::setfill(' ') << symbol->section
+            << std::setw(8) << std::setfill(' ') << symbol->offset
+            << std::setw(8) << std::setfill(' ') << symbol->defined
+            << std::setw(8) << std::setfill(' ') << symbol->isExtern
+            << std::setw(8) << std::setfill(' ') << symbol->isGlobal
+            << std::setw(8) << std::setfill(' ') << symbol->value
+            << "\n";
+    }
+    stream << "\n";
+
+    return stream.str();
+}
+
+std::string SectionTableToString(const SectionTable& table)
+{
+    std::stringstream stream;
+
+    for (const auto& section : table)
+    {
+        if (section->data.empty())
+            continue;
+
+        stream << section->name << " " << section->locationCounter << "\n";
+        int eol = 0;
+        for (int i = 0; i < section->data.size(); ++i)
+        {
+            stream << std::hex << std::setw(2) << std::setfill('0') << (uint16_t)section->data[i] << " ";
+            if (++eol == 4)
+            {
+                eol = 0;
+                stream << "\n";
+            }
+        }
+
+        stream << section->name << ".constants \n";
+        eol = 0;
+        for (int i = 0; i < section->literalPool.size(); ++i)
+        {
+            stream << std::hex << std::setw(2) << std::setfill('0') << (uint16_t)section->literalPool[i] << " ";
+            if (++eol == 4)
+            {
+                eol = 0;
+                stream << "\n";
+            }
+        }
+
+        stream << "\n";
+    }
+
+    return stream.str();
+}
+
+std::string RelocationTableToString(const RelocationTable& table)
+{
+    std::stringstream stream;
+    stream << "Relocations \n";
+    for (const auto& relocation : table)
+    {
+        stream << std::setfill(' ') 
+             << relocation->sectionName<<std::setw(16)
+             << relocation->symbolName<<std::setw(16)
+            << relocation->offset<<std::setw(8) 
+            << relocation->type <<std::setw(1) << "\n";
+    }
+
+    return stream.str();
 }
 
 eGPR GPRStringToEnum(std::string reg)
@@ -77,6 +168,15 @@ void Section::WriteData(const uint32_t& offset, const std::vector<BYTE>& inData)
 
     for (auto i = offset; i < inData.size() + offset; ++i)
         data[i] = inData[i - offset];
+}
+
+void Section::WriteInstructionDisplacement(const uint32_t& offset, const uint16_t& toWrite)
+{
+    if (offset + 3 > data.size())
+        return;
+
+    data[offset + 2] = (data[offset + 2] & 0xF0) | ((toWrite >> 8) & 0xF);
+    data[offset + 3] = toWrite & 0xFF;
 }
 
 ADDRESS Section::InsertLiteralInPool(uint32_t value)

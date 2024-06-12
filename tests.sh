@@ -1,7 +1,15 @@
+main_test_dir=./tests/unit-tests/
+
+if [ "$@" = "init" ]
+then
+    cd $main_test_dir
+    make utility.o
+    make base.o
+fi
+
 
 if [ "$@" = "make" ]
 then
-    main_test_dir=./tests/unit-tests/
     cd $main_test_dir
     tests=`ls ./*.cpp`
 

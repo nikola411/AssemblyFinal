@@ -39,7 +39,7 @@ all: flex bison asm
 
 ASM_DIR = ./inc/assembly/
 
-asm:
+asm: flex bison
 	@echo "Building assembly..."
 	@$(MAKE) -s asm -C $(ASM_DIR)
 	@echo ${SUCCESS}

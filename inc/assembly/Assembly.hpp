@@ -3,6 +3,7 @@
 
 #include "Utility.hpp"
 #include "AssemblyInstruction.hpp"
+#include "ErrorHandling.hpp"
 
 #include <vector>
 #include <memory>
@@ -20,10 +21,12 @@ public:
     void SetOperand(std::string value, eOperandType type);
     void SetOperand(ParserOperand& operand);
     void SetMultipleOperands(std::vector<ParserOperand> operands);
-    AsmResult FinishInstruction();
+    void FinishInstruction();
+
+    AssemblyErrorMetadata CheckForErrors(bool parsing);
 
 /// @brief Used for resloving backreferences
-    void ContinueParsing();
+    AsmResult ContinueParsing();
 
 /// @brief Used for printing generated ASM structures
 /// @param outFile - path to output file.
@@ -50,6 +53,9 @@ private:
     ForwardRefferenceTable mForwardRefTable;
 
     std::vector<AssemblyInstruction::s_ptr> mProgram;
+
+/// @brief Error handling data
+    AsmResult mErrorStatusCode;
 
     bool mEnd; // .END encountered
 };

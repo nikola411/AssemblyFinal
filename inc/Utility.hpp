@@ -107,6 +107,7 @@ struct Symbol
 typedef std::vector<Symbol::s_ptr> SymbolTable;
 
 Symbol::s_ptr GetSymbol(const SymbolTable& table, const std::string& label);
+std::string SymbolTableToString(const SymbolTable& table);
 
 // Symbol table definitions end
 // Section definitions
@@ -120,6 +121,7 @@ struct Section
 
     void AppendData(const std::vector<BYTE>& data);
     void WriteData(const uint32_t& offset, const std::vector<BYTE>& data);
+    void WriteInstructionDisplacement(const uint32_t& offset, const uint16_t& toWrite);
 
     ADDRESS InsertLiteralInPool(uint32_t value);
     int64_t IsLiteralPresentInPool(const uint32_t value) const;
@@ -130,6 +132,8 @@ struct Section
     typedef std::shared_ptr<Section> s_ptr;
 };
 typedef std::vector<Section::s_ptr> SectionTable;
+
+std::string SectionTableToString(const SectionTable& table);
 
 // Section definitions end
 // Relocations definitions
@@ -147,6 +151,8 @@ struct Relocation
 using RelocationTable = std::vector<Relocation::s_ptr>;
 using ForwardRefferenceTable = std::vector<Relocation::s_ptr>;
 
+std::string RelocationTableToString(const RelocationTable& table);
+
 // Relocations definitions end
 
 struct ParserOperand
@@ -163,13 +169,11 @@ struct ParserOperand
     ParserOperand() = default;
     ParserOperand(std::string value, eOperandType type) : value(value), type(type) {};
     ParserOperand(std::string value, eOperandType type, std::string offset, eOperandType offsetType, eAddressingType addressingType) :
-        value(value), type(type), offset(offset), offsetType(offsetType), addressingType(addressingType), hasOffset(true)
+        value(value), type(type), offset(offset), offsetType(offsetType), addressingType(addressingType)
     {}
 
 /// @brief ASM data
     uint16_t asmValue = 0;
-
-    bool hasOffset = false;
     uint16_t asmOffset = 0;
 };
 

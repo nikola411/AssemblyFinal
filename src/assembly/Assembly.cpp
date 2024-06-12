@@ -56,12 +56,12 @@ void Assembly::SetMultipleOperands(std::vector<ParserOperand> operands)
     }
 }
 
-AsmResult Assembly::FinishInstruction()
+void Assembly::FinishInstruction()
 {
     AsmResult result = ASM_RESULT_NOT_SUPPORTED;
 
     if (mEnd)
-        return ASM_RESULT_END_ENCOUNTERED;
+        return;
 
     switch(mCurrentInstruction->type)
     {
@@ -83,33 +83,132 @@ AsmResult Assembly::FinishInstruction()
     }   
 
     mProgram.push_back(mCurrentInstruction);
+    mErrorStatusCode = result;
 
-    return result;
+    return;
 }
 
-void Assembly::ContinueParsing()
+AssemblyErrorMetadata Assembly::CheckForErrors(bool parsing)
 {
+    AssemblyErrorMetadata error;
+
+    if (parsing)
+    {
+        if (mErrorStatusCode == ASM_RESULT_SUCCESS)
+            return error;
+        
+        error.statusCode = mErrorStatusCode;
+        return error;
+    }
+    
+    SymbolTable undefined;
+    for (const auto& symbol : mSymbolTable)
+    {
+        if (symbol->isGlobal && !symbol->defined)
+            undefined.push_back(symbol);
+    }
+
+    if (!undefined.empty())
+    {
+        error.statusCode = ASM_RESULT_UNDEFINED_SYMBOL;
+        error.value = AsmResultToString[error.statusCode];
+        error.value += "\n";
+        
+        for (const auto& symbol : undefined)
+        {
+            error.value += symbol->name;
+            error.value += " ";
+        }
+
+        error.value += "\n";
+    }
+
+    if (!mEnd)
+    {
+        error.statusCode = ASM_RESULT_END_NOT_ENCOUNTERED;
+        error.value += AsmResultToString[error.statusCode];
+        error.value += "\n";
+    }        
+
+    return error;
+}
+
+AsmResult Assembly::ContinueParsing()
+{
+    // time to backref bois
+    for (auto& fref : mForwardRefTable)
+    {
+        std::string symbolName = fref->symbolName;
+        auto entry = GetSymbol(mSymbolTable, symbolName);
+        if (!entry)
+        {
+            mErrorStatusCode = ASM_RESULT_UNDEFINED_SYMBOL;
+            return mErrorStatusCode;
+        }
+            
+        if (entry->isExtern)
+        {
+            fref->type = eRelocationType::REL_EXTERN;
+            mRelocationTable.push_back(fref);
+            continue;
+        }
+
+        if (entry->section != fref->sectionName)
+        {
+            fref->type = eRelocationType::REL_PC_RELATIVE;
+            mRelocationTable.push_back(fref);
+            continue;
+        }
+
+        for (auto& section : mSectionTable)
+        {
+            if (section->name == fref->sectionName)
+            {
+                section->WriteInstructionDisplacement(fref->offset, entry->value);
+                break;
+            }
+        }
+    }
+
+    std::cout << SymbolTableToString(mSymbolTable);
+    std::cout << SectionTableToString(mSectionTable);
+    std::cout << RelocationTableToString(mRelocationTable);
+
+    mErrorStatusCode = ASM_RESULT_SUCCESS;
+    return mErrorStatusCode;
 }
 
 void Assembly::PrintProgram(std::string outFile)
 {
-    //std::fstream file;
-    //file.open(outFile, std::ios_base::openmode::_S_out);
-//
-    //file << SymbolTableToString(mSymbolTable);
-    //file << SectionsToString(m_sections);
-    //file << RelocationTableToString(m_relocationTable);
-    //
-    //file.close();
+    std::fstream file;
+    file.open(outFile, std::ios_base::openmode::_S_out);
+
+    file << SymbolTableToString(mSymbolTable);
+    // file << SectionsToString(mSectionTable);
+    // file << RelocationTableToString(mRelocationTable);
+    
+    file.close();
 }
 
 AsmResult Assembly::HandleLabel()
 {
-    auto entry = std::make_shared<Symbol>();
-    entry->name = mCurrentInstruction->operands.front().value;
+    auto value = mCurrentInstruction->operands.front().value;
+    value = value.substr(0, value.size() - 1);
+
+    auto entry = GetSymbol(mSymbolTable, value);
+    if (entry && entry->defined)
+        return ASM_RESULT_SYMBOL_ALREADY_DEFINED;
+    
+    if (!entry)
+    {
+        entry = std::make_shared<Symbol>();
+        mSymbolTable.push_back(entry);
+        entry->isGlobal = false;
+    }
+        
+    entry->name = value;
     entry->section = mCurrentSection->name;
     entry->offset = mCurrentSection->locationCounter;
-    entry->isGlobal = false;
     entry->defined = true;
 
     auto address = mCurrentSection->IsLiteralPresentInPool(mCurrentSection->locationCounter);
@@ -117,8 +216,6 @@ AsmResult Assembly::HandleLabel()
         address = mCurrentSection->InsertLiteralInPool(mCurrentSection->locationCounter);
 
     entry->value = Section::AddressToPoolEntry(address);
-
-    mSymbolTable.push_back(entry);
 
     return ASM_RESULT_SUCCESS;
 }
@@ -132,7 +229,7 @@ AsmResult Assembly::HandleDirective()
             for (const auto& operand : mCurrentInstruction->operands)
             {
                 auto entry = GetSymbol(mSymbolTable, operand.value);
-                if (entry == nullptr)
+                if (!entry)
                 {
                     entry = std::make_shared<Symbol>();
                     entry->name = operand.value;
@@ -184,20 +281,14 @@ AsmResult Assembly::HandleDirective()
             {
                 if (operand.type == eOperandType::LTR)
                 {
-                    mCurrentSection->AppendData(std::vector<uint8_t>(4, 0));
-                    mCurrentSection->WriteData(mCurrentSection->locationCounter - 4, IntToByteArray(LiteralStringToInt(operand.value)));
+                    mCurrentSection->AppendData(IntToByteArray(LiteralStringToInt(operand.value)));
                     continue;
                 }
                 //else if (operand.type == eOperandType::SYM)
-                uint32_t value = 0;
-                auto entry = GetSymbol(mSymbolTable, operand.value);
-                if (entry == nullptr)
-                {
-                    //relocation forward ref
-                }
+                uint16_t value = GetSymbolValue(operand.value);
 
                 //add zeroes
-                mCurrentSection->AppendData(std::vector<uint8_t>(4, 0));
+                mCurrentSection->AppendData(IntToByteArray(value));
             }
 
             break;
@@ -211,6 +302,7 @@ AsmResult Assembly::HandleDirective()
         case eInstructionIdentifier::END:
         {
             mEnd = true;
+            mSectionTable.push_back(mCurrentSection);
             break;
         }
     }
@@ -265,7 +357,7 @@ AsmResult Assembly::CalculateOperandsValue()
 {
     for (auto& operand : mCurrentInstruction->operands)
     {
-        if (operand.hasOffset)
+        if (!operand.offset.empty())
         {
             if (operand.offsetType == eOperandType::LTR)
             {
@@ -321,16 +413,16 @@ AsmResult Assembly::WriteInstructionToSection(const AssemblyInstruction::s_ptr& 
             if (!method) // for instructions without operands
                 continue;
             
-            if (method->operand > operands.size())
+            if (method->operand > operands.size() && method->operand - 3 > operands.size())
                 return ASM_RESULT_CODE_MAP_INVALID_DATA;
 
             uint16_t operandValue = operands[method->operand].asmValue;
             (instruction.*method->method)(operandValue);
-
-            uint32_t data = instruction.GetData();
-            std::vector<uint8_t> bytes = IntToByteArray(data);
-            mCurrentSection->AppendData(bytes);
         }
+
+        uint32_t data = instruction.GetData();
+        std::vector<uint8_t> bytes = IntToByteArray(data);
+        mCurrentSection->AppendData(bytes);
     }
 
     return ASM_RESULT_SUCCESS;

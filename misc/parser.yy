@@ -95,7 +95,7 @@
 %token DOLLAR "$" R_BRACKET "]" L_BRACKET "[";
 %token L_PAREN "(" R_PAREN ")";
 %token PERCENT "%" PLUS "+" MINUS "-";
-%token COMMA ",";
+%token COMMA "," COLON ":";
 %token COMMENT;
 %token EOF 0 "end of file";
  
@@ -104,15 +104,25 @@
 NT_Program:
     NT_Program NT_Line
     {
-        AsmResult result = assembly.FinishInstruction();
-        if (result != ASM_RESULT_SUCCESS)
-            throw AssemblyException(AsmResultToString[result]);
+        assembly.FinishInstruction();
+        auto error = assembly.CheckForErrors(true);
+        if (error.statusCode != ASM_RESULT_SUCCESS)
+        {
+            std::string code = AsmResultToString[error.statusCode];
+            yy::parser::error(@2, code);
+            throw AssemblyException();
+        }
     }
     | NT_Line
     {
-        AsmResult result = assembly.FinishInstruction();
-        if (result != ASM_RESULT_SUCCESS)
-            throw AssemblyException(AsmResultToString[result]);
+        assembly.FinishInstruction();
+        auto error = assembly.CheckForErrors(true);
+        if (error.statusCode != ASM_RESULT_SUCCESS)
+        {
+            std::string code = AsmResultToString[error.statusCode];
+            yy::parser::error(@1, code);
+            throw AssemblyException();
+        }
     }
     | EOF
     ;
@@ -238,7 +248,7 @@ NT_DataInstruction:
     {
         if ($1 == eInstructionIdentifier::NOT && $2.size() > 1)
         {
-            std::cout << "wrong number of argruments for instruction \n";
+            error(@1, "Wrong number of arguments for instruction not.\n");
             return 1;
         }
 

@@ -16,6 +16,8 @@ enum AsmResult
     ASM_RESULT_NOT_SUPPORTED,
     ASM_RESULT_END_ENCOUNTERED,
     ASM_RESULT_END_NOT_ENCOUNTERED,
+    ASM_RESULT_UNDEFINED_SYMBOL,
+    ASM_RESULT_SYMBOL_ALREADY_DEFINED
 };
 
 static std::map<AsmResult, std::string> AsmResultToString =
@@ -29,16 +31,41 @@ static std::map<AsmResult, std::string> AsmResultToString =
     { ASM_RESULT_NOT_SUPPORTED, "Instruction is not supported. " },
     { ASM_RESULT_END_ENCOUNTERED, "End directive encountered." },
     { ASM_RESULT_END_NOT_ENCOUNTERED, "End directive not encountered." },
+    { ASM_RESULT_UNDEFINED_SYMBOL, "Undefined symbol."},
+    { ASM_RESULT_SYMBOL_ALREADY_DEFINED, "Symbol already defined." },
+};
+
+struct AssemblyErrorMetadata
+{
+    AsmResult statusCode = ASM_RESULT_SUCCESS;
+    std::string value;
 };
 
 class AssemblyException : public std::exception
 {
 public:
-    AssemblyException(std::string arg) : message(arg) {};
-    const char* what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_NOTHROW final { return message.c_str(); };
+    AssemblyException() {};
+    // AssemblyException(std::string arg) : message(arg) {};
+    // AssemblyException(std::string arg, std::vector<std::string> more) : message(arg), more(more) {}
+
+    const char* what() const _GLIBCXX_TXN_SAFE_DYN _GLIBCXX_NOTHROW final
+    {
+        // std::string error("");
+        // error += message;
+
+        // for (const auto& part : more)
+        //     error += part;
+
+        // return error.c_str();
+
+        return "Aborting execution.";
+    };
 
 private:
+
+    std::string ExpandMore();
     std::string message;
+    std::vector<std::string> more;
 };
 
 #endif
