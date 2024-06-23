@@ -1,5 +1,6 @@
 #include "Assembly.hpp"
 #include "Utility.hpp"
+#include "InstructionMapping.hpp"
 
 #include <iostream>
 #include <iomanip>
@@ -21,13 +22,19 @@
 
 #define NO_ACTION &Assembly::DoNothing
 
+#include <chrono>
+
 Assembly::Assembly() :
     mEnd(false)
 {
     CodesMap::PopulateMap();
+
     mCurrentSection = std::make_shared<Section>();
     mCurrentSection->name = DEFAULT_SECTION;
 
+    Generate();
+    GenerateSpecial();
+    int x = 1;
     //m_symbolAndLiteralPool = {};
 }
 
@@ -88,19 +95,21 @@ void Assembly::FinishInstruction()
     return;
 }
 
-AssemblyErrorMetadata Assembly::CheckForErrors(bool parsing)
+AssemblyErrorMetadata Assembly::CheckForParsingErrors()
+{
+    AssemblyErrorMetadata error;
+    if (mErrorStatusCode == ASM_RESULT_SUCCESS)
+            return error;
+        
+    error.statusCode = mErrorStatusCode;
+    return error;
+}
+
+AssemblyErrorMetadata Assembly::CheckForAssemblyErrors()
 {
     AssemblyErrorMetadata error;
 
-    if (parsing)
-    {
-        if (mErrorStatusCode == ASM_RESULT_SUCCESS)
-            return error;
-        
-        error.statusCode = mErrorStatusCode;
-        return error;
-    }
-    
+    // check for undefined symbols - isGlobal = true && defined = false
     SymbolTable undefined;
     for (const auto& symbol : mSymbolTable)
     {
@@ -111,16 +120,20 @@ AssemblyErrorMetadata Assembly::CheckForErrors(bool parsing)
     if (!undefined.empty())
     {
         error.statusCode = ASM_RESULT_UNDEFINED_SYMBOL;
-        error.value = AsmResultToString[error.statusCode];
-        error.value += "\n";
-        
         for (const auto& symbol : undefined)
         {
-            error.value += symbol->name;
-            error.value += " ";
+            error.value += UndefinedSymbolMessage(symbol->name);
         }
+    }
 
-        error.value += "\n";
+    // check for undefined symbols not signed as extern
+    for (const auto& symbol : mSymbolTable)
+    {
+        if (!symbol->defined && symbol->isExtern)
+        {
+            error.statusCode = ASM_RESULT_UNDEFINED_SYMBOL;
+            error.value += UndefinedSymbolMessage(symbol->name);
+        }
     }
 
     if (!mEnd)
@@ -128,7 +141,17 @@ AssemblyErrorMetadata Assembly::CheckForErrors(bool parsing)
         error.statusCode = ASM_RESULT_END_NOT_ENCOUNTERED;
         error.value += AsmResultToString[error.statusCode];
         error.value += "\n";
-    }        
+    } 
+
+    if (mCurrentInstruction->addressing == eAddressingType::ADDR_MEMORY_OFFSET)
+    {
+        
+    }
+
+    if (mCurrentInstruction->addressing == eAddressingType::ADDR_MEMORY)
+    {
+
+    }    
 
     return error;
 }
@@ -164,7 +187,12 @@ AsmResult Assembly::ContinueParsing()
         {
             if (section->name == fref->sectionName)
             {
-                section->WriteInstructionDisplacement(fref->offset, entry->value);
+                int16_t offset = section->data.size() - fref->offset;
+                if (offset > 0xFFF)
+                    mErrorStatusCode = ASM_RESULT_POOL_OUT_OF_REACH;
+
+                offset &= 0xFFF;
+                section->WriteInstructionDisplacement(fref->offset, offset);
                 break;
             }
         }
@@ -330,7 +358,6 @@ uint16_t Assembly::GetSymbolValue(const std::string& name)
         auto relocation = std::make_shared<Relocation>();
         relocation->offset = mCurrentSection->locationCounter;
         relocation->sectionName = mCurrentSection->name;
-        relocation->type = eRelocationType::REL_FORWARD_REFERENCING;
         relocation->symbolName = name;
 
         mForwardRefTable.push_back(relocation);

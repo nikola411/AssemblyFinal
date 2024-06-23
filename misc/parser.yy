@@ -105,7 +105,7 @@ NT_Program:
     NT_Program NT_Line
     {
         assembly.FinishInstruction();
-        auto error = assembly.CheckForErrors(true);
+        auto error = assembly.CheckForParsingErrors();
         if (error.statusCode != ASM_RESULT_SUCCESS)
         {
             std::string code = AsmResultToString[error.statusCode];
@@ -116,7 +116,7 @@ NT_Program:
     | NT_Line
     {
         assembly.FinishInstruction();
-        auto error = assembly.CheckForErrors(true);
+        auto error = assembly.CheckForParsingErrors();
         if (error.statusCode != ASM_RESULT_SUCCESS)
         {
             std::string code = AsmResultToString[error.statusCode];

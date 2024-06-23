@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
         driver.parse(input_file);
         assembly->ContinueParsing();
 
-        AssemblyErrorMetadata error = assembly->CheckForErrors(false);
+        AssemblyErrorMetadata error = assembly->CheckForAssemblyErrors();
         if (error.statusCode != ASM_RESULT_SUCCESS)
         {
             std::cerr << "\033[31m ERROR: " << error.value << "\n";

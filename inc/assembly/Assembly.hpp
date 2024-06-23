@@ -23,7 +23,8 @@ public:
     void SetMultipleOperands(std::vector<ParserOperand> operands);
     void FinishInstruction();
 
-    AssemblyErrorMetadata CheckForErrors(bool parsing);
+    AssemblyErrorMetadata CheckForParsingErrors();
+    AssemblyErrorMetadata CheckForAssemblyErrors();
 
 /// @brief Used for resloving backreferences
     AsmResult ContinueParsing();

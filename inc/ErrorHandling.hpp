@@ -17,7 +17,8 @@ enum AsmResult
     ASM_RESULT_END_ENCOUNTERED,
     ASM_RESULT_END_NOT_ENCOUNTERED,
     ASM_RESULT_UNDEFINED_SYMBOL,
-    ASM_RESULT_SYMBOL_ALREADY_DEFINED
+    ASM_RESULT_SYMBOL_ALREADY_DEFINED,
+    ASM_RESULT_POOL_OUT_OF_REACH,
 };
 
 static std::map<AsmResult, std::string> AsmResultToString =
@@ -31,8 +32,9 @@ static std::map<AsmResult, std::string> AsmResultToString =
     { ASM_RESULT_NOT_SUPPORTED, "Instruction is not supported. " },
     { ASM_RESULT_END_ENCOUNTERED, "End directive encountered." },
     { ASM_RESULT_END_NOT_ENCOUNTERED, "End directive not encountered." },
-    { ASM_RESULT_UNDEFINED_SYMBOL, "Undefined symbol."},
+    { ASM_RESULT_UNDEFINED_SYMBOL, "Undefined symbols."},
     { ASM_RESULT_SYMBOL_ALREADY_DEFINED, "Symbol already defined." },
+    { ASM_RESULT_POOL_OUT_OF_REACH, "Literal pool where symbol value is located is out of reach." },
 };
 
 struct AssemblyErrorMetadata
@@ -40,6 +42,8 @@ struct AssemblyErrorMetadata
     AsmResult statusCode = ASM_RESULT_SUCCESS;
     std::string value;
 };
+
+std::string UndefinedSymbolMessage(const std::string& name);
 
 class AssemblyException : public std::exception
 {
@@ -65,7 +69,6 @@ private:
 
     std::string ExpandMore();
     std::string message;
-    std::vector<std::string> more;
 };
 
 #endif

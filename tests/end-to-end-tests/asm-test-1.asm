@@ -8,12 +8,10 @@ num2:
 result:
     .word 0
 
-.section .text 
 .global start
 
-starts:
-    ld [%r2 + 0x6FF], %r1
-    not %r1    
+start:
+    ld [%r1 + 0xFF], %r1  
     ld num2, %r2     
     add %r1, %r2     
     st %r2, result   

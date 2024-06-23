@@ -15,11 +15,12 @@ struct AssemblyInstruction
 
     using s_ptr = std::shared_ptr<AssemblyInstruction>;
 
-
     eAddressingType addressing;
     eInstructionType type;
     eInstructionIdentifier identifier;
     std::vector<ParserOperand> operands;
+
+    
 
     std::vector<InstructionPopulationMetadata> metadata;
 };

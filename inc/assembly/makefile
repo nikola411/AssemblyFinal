@@ -1,4 +1,4 @@
-CXXFLAGS += -g -Wall -Wextra -pthread
+CXXFLAGS += -g -pthread
 
 BASE_DIR = ../..
 

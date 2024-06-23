@@ -7,7 +7,8 @@
 enum eValueToUse
 {
     FIRST_OPERAND = 0x00, SECOND_OPERAND = 0x01, THIRD_OPERAND = 0x02,
-    FIRST_OFFSET = 0x03, SECOND_OFFSET = 0x04, THIRD_OFFSET = 0x05
+    FIRST_OFFSET = 0x03, SECOND_OFFSET = 0x04, THIRD_OFFSET = 0x05,
+    NONE, POOL_ENTRY
 };
 
 typedef void (Instruction::* ptrInstructionMethod)(uint16_t);

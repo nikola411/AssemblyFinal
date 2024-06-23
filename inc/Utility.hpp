@@ -70,7 +70,7 @@ enum eRelocationType
     REL_LOCAL,
     REL_EXTERN,
     REL_PC_RELATIVE,
-    REL_FORWARD_REFERENCING,
+    REL_POOL_PLACEMENT,
 };
 
 enum eGPR
@@ -144,6 +144,7 @@ struct Relocation
     std::string sectionName;
     uint32_t offset;
     eRelocationType type;
+    uint32_t addend;
 
     typedef std::shared_ptr<Relocation> s_ptr;
 };
