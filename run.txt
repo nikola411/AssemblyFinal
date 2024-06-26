@@ -1,0 +1,39 @@
+
+               Name         Section  Offset Defined  Extern  Global   Value Big
+  1            data            data       0       1       0       0       0   0
+  2            num1            data       0       1       0       1       0   0
+  3            num2            data       4       1       0       1       4   0
+  4          result            data       8       1       0       1       8   0
+  5            text            text       0       1       0       0   24731   0
+  6           start            text      24       1       0       1      24   0
+  7        undefsym    .GLOBAL_DATA       0       0       1       0   24731   0
+  8         jmplabl    .GLOBAL_DATA       0       0       1       0       0   0
+  9             sym            text      16       1       0       0      16   0
+ 10            sym2            text      20       1       0       0      20   0
+
+data 12
+00 00 00 05 
+00 00 00 0a 
+00 00 00 00 
+data.constants 
+
+text 30
+00 00 00 00 
+00 00 00 00 
+00 00 00 00 
+00 00 00 00 
+00 00 00 50 
+00 00 00 10 
+92 11 00 00 
+92 20 00 00 
+50 22 10 00 
+30 00 00 00 
+81 00 20 00 
+00 00 00 00 
+text.constants 
+
+Relocations 
+text        undefsym              24       0
+text            num2              28       1
+text         jmplabl              36       0
+text          result              40       1

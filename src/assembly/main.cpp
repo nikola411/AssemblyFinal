@@ -3,7 +3,6 @@
 
 #include "Driver.hpp"
 #include "Utility.hpp"
-#include "Codes.hpp"
 
 #include <bitset>
 #include <memory>
@@ -42,33 +41,26 @@ int main(int argc, char* argv[])
     // START ASSEMBLY
     try
     {
-        auto assembly = new Assembly();
-        Driver driver(debug, assembly);
+        auto adapter = new AssemblyAdapter();
+        Driver driver(debug, adapter);
         driver.parse(input_file);
-        assembly->ContinueParsing();
-
-        AssemblyErrorMetadata error = assembly->CheckForAssemblyErrors();
-        if (error.statusCode != ASM_RESULT_SUCCESS)
-        {
-            std::cerr << "\033[31m ERROR: " << error.value << "\n";
-            return 0;
-        }
-
+        adapter->Backpatch();       
+        adapter->GenerateOutput(output_file);
         
-        //assembly->PrintProgram(output_file);
-
-        delete assembly;
+        delete adapter;
+    }
+    catch(const FatalException& e)
+    {
+        std::cerr << "\033[31m" << "Aborting execution.\n";
     }
     catch(const AssemblyException& e)
     {
-       std::cerr << "\033[31m" << e.what() << '\n';
+       std::cerr << "\033[31m" << e.GetErrorMessage() << '\n';
     }
     catch(const std::exception& e)
     {
         std::cerr << "\033[31mERROR: " <<  e.what() << '\n';
     }
     
-    
-
     return 0;
 }

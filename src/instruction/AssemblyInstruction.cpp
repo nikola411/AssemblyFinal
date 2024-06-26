@@ -1,6 +1,5 @@
 #include "AssemblyInstruction.hpp"
 #include "Utility.hpp"
-#include "Codes.hpp"
 
 #include <set>
 
@@ -46,7 +45,7 @@ eOperandType AssemblyInstruction::GetOperandType() const
 
 eAddressingType AssemblyInstruction::GetAddressingType() const
 {
-     switch (identifier)
+    switch (identifier)
     {
         case eInstructionIdentifier::CALL:
         case eInstructionIdentifier::JMP:
@@ -72,4 +71,24 @@ eAddressingType AssemblyInstruction::GetAddressingType() const
     }
 
     return eAddressingType::ADDR_NONE;
+}
+
+int AssemblyInstruction::GetVariableOperandIndex() const
+{
+    switch (identifier)
+    {
+        case eInstructionIdentifier::CALL:
+        case eInstructionIdentifier::JMP:
+            return 0;
+        case eInstructionIdentifier::BEQ:
+        case eInstructionIdentifier::BNE:
+        case eInstructionIdentifier::BGT:
+            return 2;
+        case eInstructionIdentifier::LD:
+            return 0;
+        case eInstructionIdentifier::ST:
+            return 1;
+    }
+
+    return -1;
 }

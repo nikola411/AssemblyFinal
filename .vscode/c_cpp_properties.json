@@ -8,7 +8,8 @@
                 "${workspaceFolder}/inc/assembly",
                 "${workspaceFolder}/misc/parser",
                 "${workspaceFolder}/misc/scanner",
-                "${workspaceFolder}/inc/instruction"
+                "${workspaceFolder}/inc/instruction",
+                "${workspaceFolder}/tests/unit-tests/googletest/googlemock/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

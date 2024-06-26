@@ -12,10 +12,10 @@
  
 %code requires
 {
-    #include "Assembly.hpp"
+    #include "AssemblyAdapter.hpp"
     
     class Driver;
-    class Assembly;
+    class AssemblyAdapter;
 
     using std::string;
     using std::vector;
@@ -23,7 +23,7 @@
 }
 
 %param { Driver& drv }
-%param { Assembly& assembly }
+%param { AssemblyAdapter& assembly }
 %locations
 
 %define parse.trace
@@ -104,24 +104,26 @@
 NT_Program:
     NT_Program NT_Line
     {
-        assembly.FinishInstruction();
-        auto error = assembly.CheckForParsingErrors();
-        if (error.statusCode != ASM_RESULT_SUCCESS)
+        try
         {
-            std::string code = AsmResultToString[error.statusCode];
-            yy::parser::error(@2, code);
-            throw AssemblyException();
+            assembly.FinishInstruction();
+        }
+        catch (AssemblyException& e)
+        {
+            yy::parser::error(@2, std::string(e.GetErrorMessage()));
+            throw FatalException();
         }
     }
     | NT_Line
     {
-        assembly.FinishInstruction();
-        auto error = assembly.CheckForParsingErrors();
-        if (error.statusCode != ASM_RESULT_SUCCESS)
+        try
         {
-            std::string code = AsmResultToString[error.statusCode];
-            yy::parser::error(@1, code);
-            throw AssemblyException();
+            assembly.FinishInstruction();
+        }
+        catch (AssemblyException& e)
+        {
+            yy::parser::error(@1, std::string(e.GetErrorMessage()));
+            throw FatalException();
         }
     }
     | EOF

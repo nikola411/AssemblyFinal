@@ -6,18 +6,18 @@
 #include "parser.hpp"
 #include "location.hh"
 
-#include "Assembly.hpp"
+#include "AssemblyAdapter.hpp"
 
 // Give Flex the prototype of yylex we want ...
 # define YY_DECL \
-    yy::parser::symbol_type yylex (Driver& drv, Assembly& asem)
+    yy::parser::symbol_type yylex (Driver& drv, AssemblyAdapter& asem)
 // ... and declare it for the parser's sake.
 YY_DECL;
 
 class Driver
 {
 public:
-    Driver(bool, Assembly*);
+    Driver(bool, AssemblyAdapter*);
 
     void scan_begin();
     void scan_end();
@@ -29,7 +29,7 @@ private:
     std::string file;
     bool trace_parsing;
 
-    Assembly* assembly;
+    AssemblyAdapter* assembly;
 };
 
 #endif

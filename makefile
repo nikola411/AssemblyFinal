@@ -63,6 +63,11 @@ clean:
 	@rm -rf asembler
 	@echo $(SUCCESS)
 
+unit-tests:
+	@echo "Builing unit-tests..."
+	@sh ./tests.sh make
+	@echo $(SUCCESS)
+	
 ## coloring util
 COLOR_GREEN=\033[0;32m
 COLOR_RED=\033[0;31m

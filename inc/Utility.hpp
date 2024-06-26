@@ -66,11 +66,8 @@ enum eAddressingType
 
 enum eRelocationType
 {
-    REL_NONE,
-    REL_LOCAL,
-    REL_EXTERN,
-    REL_PC_RELATIVE,
-    REL_POOL_PLACEMENT,
+    REL12_DIRECT, // needs to relocate small symbol value directly into the instruction
+    REL32_DIRECT // needs to relocate symbol into a local pool and calculate offset
 };
 
 enum eGPR
@@ -97,10 +94,11 @@ struct Symbol
     bool defined = false;
     bool isGlobal = false;
     bool isExtern = false;
+    bool isBig = false;
 
     Symbol(){};
-    Symbol(std::string name, std::string section, uint32_t offset, uint16_t value = 0, bool defined = false, bool isGlobal = false, bool isExtern = false)
-        : name(name), section(section), offset(offset), value(value), defined(defined), isGlobal(isGlobal), isExtern(isExtern) {};
+    Symbol(std::string name, std::string section, uint32_t offset, uint16_t value = 0, bool defined = false, bool isGlobal = false, bool isExtern = false, bool isBig = false)
+        : name(name), section(section), offset(offset), value(value), defined(defined), isGlobal(isGlobal), isExtern(isExtern), isBig(isBig) {};
 
     typedef std::shared_ptr<Symbol> s_ptr;
 };

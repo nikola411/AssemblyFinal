@@ -10,7 +10,6 @@ Symbol::s_ptr GetSymbol(const SymbolTable& table, const std::string& label)
             return entry;
 
     return nullptr;
-    ///sss///sss
 }
 
 std::string SymbolTableToString(const SymbolTable& table)
@@ -26,6 +25,7 @@ std::string SymbolTableToString(const SymbolTable& table)
         << std::setw(8) << std::setfill(' ') << "Extern"
         << std::setw(8) << std::setfill(' ') << "Global"
         << std::setw(8) << std::setfill(' ') << "Value"
+        << std::setw(4) << std::setfill(' ') << "Big"
         << "\n";
 
     for (const auto& symbol : table)
@@ -39,6 +39,7 @@ std::string SymbolTableToString(const SymbolTable& table)
             << std::setw(8) << std::setfill(' ') << symbol->isExtern
             << std::setw(8) << std::setfill(' ') << symbol->isGlobal
             << std::setw(8) << std::setfill(' ') << symbol->value
+            << std::setw(4) << std::setfill(' ') << symbol->isBig
             << "\n";
     }
     stream << "\n";
@@ -103,12 +104,17 @@ std::string RelocationTableToString(const RelocationTable& table)
 
 eGPR GPRStringToEnum(std::string reg)
 {
-    return eGPR();
+    return (eGPR)std::stoi(reg.substr(1, reg.size()));
 }
 
 eCSR CSRStringToEnum(std::string csr)
 {
-    return eCSR();
+    if (csr == "cause")
+        return eCSR::CAUSE;
+    if (csr == "handler")
+        return eCSR::HANDLER;
+    
+    return eCSR::STATUS;
 }
 
 std::vector<uint8_t> IntToByteArray(const uint32_t& value)
@@ -184,7 +190,7 @@ ADDRESS Section::InsertLiteralInPool(uint32_t value)
     auto bytes = IntToByteArray(value);
     literalPool.insert(literalPool.end(), bytes.begin(), bytes.end());
 
-    return literalPool.end() - literalPool.begin();
+    return literalPool.size() - bytes.size();
 }
 
 uint32_t Section::AddressToPoolEntry(ADDRESS address)

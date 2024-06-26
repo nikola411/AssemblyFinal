@@ -1,20 +1,18 @@
 main_test_dir=./tests/unit-tests/
 
-if [ "$@" = "init" ]
-then
-    cd $main_test_dir
-    make utility.o
-    make base.o
-fi
-
+dependencies_init ()
+{
+    make src=Utility Utility.src
+    make src=Base Base.src
+    make src=AssemblyInstruction path='./instruction/' AssemblyInstruction
+}
 
 if [ "$@" = "make" ]
 then
     cd $main_test_dir
     tests=`ls ./*.cpp`
 
-    make utility.o
-    make base.o
+    dependencies_init
     
     for entry in $tests
     do

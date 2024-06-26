@@ -2,7 +2,7 @@
 #include "parser.hpp"
 #include "scanner.hpp"
 
-Driver::Driver (bool debug, Assembly* assembly)
+Driver::Driver (bool debug, AssemblyAdapter* assembly)
   : trace_parsing (debug)
 {
   this->assembly = assembly;
