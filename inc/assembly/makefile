@@ -5,6 +5,7 @@ BASE_DIR = ../..
 INCLUDE = -I$(BASE_DIR)/inc/assembly/
 INCLUDE += -I$(BASE_DIR)/inc/instruction/
 INCLUDE += -I$(BASE_DIR)/inc/
+INCLUDE += -I$(BASE_DIR)/inc/util/
 INCLUDE += -I$(BASE_DIR)/misc/parser/
 INCLUDE += -I$(BASE_DIR)/misc/scanner/
 

@@ -92,10 +92,10 @@ std::string RelocationTableToString(const RelocationTable& table)
     stream << "Relocations \n";
     for (const auto& relocation : table)
     {
-        stream << std::setfill(' ') 
+        stream << std::setfill(' ')
              << relocation->sectionName<<std::setw(16)
              << relocation->symbolName<<std::setw(16)
-            << relocation->offset<<std::setw(8) 
+            << relocation->offset<<std::setw(8)
             << relocation->type <<std::setw(1) << "\n";
     }
 
@@ -104,6 +104,12 @@ std::string RelocationTableToString(const RelocationTable& table)
 
 eGPR GPRStringToEnum(std::string reg)
 {
+    // covnert sp and pc to r14 and r15 repsectively
+    if (reg == "sp" || reg == "pc")
+    {
+        reg = reg == "sp" ? "r14" : "r15";
+    }
+
     return (eGPR)std::stoi(reg.substr(1, reg.size()));
 }
 
@@ -113,7 +119,7 @@ eCSR CSRStringToEnum(std::string csr)
         return eCSR::CAUSE;
     if (csr == "handler")
         return eCSR::HANDLER;
-    
+
     return eCSR::STATUS;
 }
 
@@ -123,7 +129,7 @@ std::vector<uint8_t> IntToByteArray(const uint32_t& value)
 
     for (uint8_t i = 0; i < 4; ++i)
     {
-        auto byte = value >> ((3 - i) * 8);
+        auto byte = value >> (i * 8);
         byte &= 0xFF;
         result.push_back(byte);
     }
@@ -141,7 +147,7 @@ uint32_t LiteralStringToInt(const std::string& value)
     int base = 10;
     if (value.find_first_of('x') != std::string::npos)
         base = 16;
-    
+
     return std::stoll(value, 0, base);
 }
 
@@ -149,7 +155,7 @@ bool Compare(const std::vector<uint8_t>& first, const std::vector<uint8_t>& seco
 {
     if (first.size() != second.size())
         return false;
-    
+
     for (unsigned int i = 0; i < first.size(); ++i)
         if (first[i] != second[i])
             return false;
@@ -178,11 +184,12 @@ void Section::WriteData(const uint32_t& offset, const std::vector<BYTE>& inData)
 
 void Section::WriteInstructionDisplacement(const uint32_t& offset, const uint16_t& toWrite)
 {
-    if (offset + 3 > data.size())
+    if (offset + 1 > data.size())
         return;
 
-    data[offset + 2] = (data[offset + 2] & 0xF0) | ((toWrite >> 8) & 0xF);
-    data[offset + 3] = toWrite & 0xFF;
+    //data[offset + 1] |=  ((toWrite >> 8) & 0xF) << 4;
+    data[offset] = toWrite & 0xFF;
+    data[offset + 1] |= (toWrite >> 8);
 }
 
 ADDRESS Section::InsertLiteralInPool(uint32_t value)

@@ -1,9 +1,0 @@
-
-               Name         Section  Offset Defined  Extern  Global   Value Big
-  1         sekcija         sekcija       0       1       0       0       0   0
-
-sekcija 4
-00 00 00 0a 
-sekcija.constants 
-
-Relocations 

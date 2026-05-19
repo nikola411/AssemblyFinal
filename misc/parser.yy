@@ -9,11 +9,11 @@
 %define api.token.constructor
 %define api.value.type variant
 %define parse.assert
- 
+
 %code requires
 {
     #include "AssemblyAdapter.hpp"
-    
+
     class Driver;
     class AssemblyAdapter;
 
@@ -29,13 +29,14 @@
 %define parse.trace
 %define parse.error verbose
 %define parse.lac full
- 
+
 %code
 {
     #include <memory>
     #include <vector>
     #include <string>
 
+    #include "DataTypes.hpp"
     #include "Utility.hpp"
     #include "Driver.hpp"
 }
@@ -53,20 +54,20 @@
 %type <std::string> NT_DirectiveWithSymbolList;
 %type <std::string> NT_DirectiveWithList;
 %type <std::string> NT_DirectiveSingleArgument;
-%type <eInstructionIdentifier> NT_DirectiveIdentifier;
+%type <eAssemblyIdentifier> NT_DirectiveIdentifier;
 
 %nterm NT_ProcessorInstruction;
 
 %nterm NT_BranchInstruction;
-%type <eInstructionIdentifier> NT_ConditionalJumpIdentifier;
-%type <eInstructionIdentifier> NT_UnconditionalJumpIdentifier;
+%type <eAssemblyIdentifier> NT_ConditionalJumpIdentifier;
+%type <eAssemblyIdentifier> NT_UnconditionalJumpIdentifier;
 %type <ConditionalJumpOperands> NT_ConditionalJumpOperands;
 
 %nterm NT_StackInstruction;
-%type <eInstructionIdentifier> NT_StackInstructionIdentifier;
+%type <eAssemblyIdentifier> NT_StackInstructionIdentifier;
 
 %nterm NT_DataInstruction;
-%type <eInstructionIdentifier> NT_DataInstructionIdentifier;
+%type <eAssemblyIdentifier> NT_DataInstructionIdentifier;
 %type <std::vector<ParserOperand>> NT_DataInstructionOperands;
 
 %nterm NT_MemoryInstruction;
@@ -98,7 +99,7 @@
 %token COMMA "," COLON ":";
 %token COMMENT;
 %token EOF 0 "end of file";
- 
+
 %%
 
 NT_Program:
@@ -144,7 +145,7 @@ NT_LabelAndComment:
     COMMENT
     | LABEL
     {
-        assembly.SetInstruction(eInstructionIdentifier::LBL, eInstructionType::LABEL);
+        assembly.SetInstruction(eAssemblyIdentifier::LBL, eAssemblyIdentifierType::LABEL);
         assembly.SetOperand($1, eOperandType::SYM);
     }
     ;
@@ -155,7 +156,7 @@ NT_Directive:
     | NT_DirectiveSingleArgument
     | END
     {
-        assembly.SetInstruction(eInstructionIdentifier::END, eInstructionType::DIRECTIVE);
+        assembly.SetInstruction(eAssemblyIdentifier::END, eAssemblyIdentifierType::DIRECTIVE);
 
     }
     ;
@@ -163,13 +164,13 @@ NT_Directive:
 NT_DirectiveWithList:
     WORD NT_LiteralList
     {
-        assembly.SetInstruction(eInstructionIdentifier::WORD, eInstructionType::DIRECTIVE);
+        assembly.SetInstruction(eAssemblyIdentifier::WORD, eAssemblyIdentifierType::DIRECTIVE);
         assembly.SetMultipleOperands($2);
-        
+
     }
     | WORD NT_SymbolList
     {
-        assembly.SetInstruction(eInstructionIdentifier::WORD, eInstructionType::DIRECTIVE);
+        assembly.SetInstruction(eAssemblyIdentifier::WORD, eAssemblyIdentifierType::DIRECTIVE);
         assembly.SetMultipleOperands($2);
     }
     ;
@@ -177,12 +178,12 @@ NT_DirectiveWithList:
 NT_DirectiveSingleArgument:
     SECTION SYMBOL
     {
-        assembly.SetInstruction(eInstructionIdentifier::SECTION, eInstructionType::DIRECTIVE);
+        assembly.SetInstruction(eAssemblyIdentifier::SECTION, eAssemblyIdentifierType::DIRECTIVE);
         assembly.SetOperand($2, eOperandType::SYM);
     }
     | SKIP LITERAL
     {
-        assembly.SetInstruction(eInstructionIdentifier::SKIP, eInstructionType::DIRECTIVE);
+        assembly.SetInstruction(eAssemblyIdentifier::SKIP, eAssemblyIdentifierType::DIRECTIVE);
         assembly.SetOperand($2, eOperandType::LTR);
     }
     ;
@@ -190,44 +191,44 @@ NT_DirectiveSingleArgument:
 NT_DirectiveWithSymbolList:
     NT_DirectiveIdentifier NT_SymbolList
     {
-        assembly.SetInstruction($1, eInstructionType::DIRECTIVE);
+        assembly.SetInstruction($1, eAssemblyIdentifierType::DIRECTIVE);
         assembly.SetMultipleOperands($2);
     }
     ;
 
 NT_DirectiveIdentifier:
-    GLOBAL { $$ = eInstructionIdentifier::GLOBAL; }
-    | EXTERN { $$ = eInstructionIdentifier::EXTERN; }
+    GLOBAL { $$ = eAssemblyIdentifier::GLOBAL; }
+    | EXTERN { $$ = eAssemblyIdentifier::EXTERN; }
     ;
 //---------------------DIRECTIVES-END----------------
 //---------------------PROCESSOR-INSTR---------------
 NT_ProcessorInstruction:
-    HALT { assembly.SetInstruction(eInstructionIdentifier::HALT, eInstructionType::PROCESSOR); }
-    | INT { assembly.SetInstruction(eInstructionIdentifier::INT, eInstructionType::PROCESSOR); }
-    | IRET { assembly.SetInstruction(eInstructionIdentifier::IRET, eInstructionType::PROCESSOR); }
-    | RET { assembly.SetInstruction(eInstructionIdentifier::RET, eInstructionType::PROCESSOR); }
+    HALT { assembly.SetInstruction(eAssemblyIdentifier::HALT, eAssemblyIdentifierType::PROCESSOR); }
+    | INT { assembly.SetInstruction(eAssemblyIdentifier::INT, eAssemblyIdentifierType::PROCESSOR); }
+    | IRET { assembly.SetInstruction(eAssemblyIdentifier::IRET, eAssemblyIdentifierType::PROCESSOR); }
+    | RET { assembly.SetInstruction(eAssemblyIdentifier::RET, eAssemblyIdentifierType::PROCESSOR); }
     ;
 //---------------------PROCESSOR-END-----------------
 //---------------------BRANCH------------------------
 NT_BranchInstruction:
     NT_ConditionalJumpIdentifier NT_ConditionalJumpOperands
     {
-        assembly.SetInstruction($1, eInstructionType::BRANCH);
+        assembly.SetInstruction($1, eAssemblyIdentifierType::BRANCH);
         assembly.SetOperand($2.gpr1, eOperandType::GPR);
         assembly.SetOperand($2.gpr2, eOperandType::GPR);
         assembly.SetOperand($2.operand);
     }
     | NT_UnconditionalJumpIdentifier NT_JumpOperand
     {
-        assembly.SetInstruction($1, eInstructionType::BRANCH);
+        assembly.SetInstruction($1, eAssemblyIdentifierType::BRANCH);
         assembly.SetOperand($2);
     }
     ;
 
 NT_ConditionalJumpIdentifier:
-    BEQ { $$ = eInstructionIdentifier::BEQ; }
-    | BNE { $$ = eInstructionIdentifier::BNE; }
-    | BGT { $$ = eInstructionIdentifier::BGT; }
+    BEQ { $$ = eAssemblyIdentifier::BEQ; }
+    | BNE { $$ = eAssemblyIdentifier::BNE; }
+    | BGT { $$ = eAssemblyIdentifier::BGT; }
     ;
 
 NT_ConditionalJumpOperands:
@@ -240,37 +241,37 @@ NT_ConditionalJumpOperands:
     ;
 
 NT_UnconditionalJumpIdentifier:
-    JMP { $$ = eInstructionIdentifier::JMP; }
-    | CALL { $$ = eInstructionIdentifier::CALL; }
+    JMP { $$ = eAssemblyIdentifier::JMP; }
+    | CALL { $$ = eAssemblyIdentifier::CALL; }
     ;
 //---------------------BRANCH-END--------------------
 //---------------------DATA--------------------------
 NT_DataInstruction:
     NT_DataInstructionIdentifier NT_DataInstructionOperands
     {
-        if ($1 == eInstructionIdentifier::NOT && $2.size() > 1)
+        if ($1 == eAssemblyIdentifier::NOT && $2.size() > 1)
         {
             error(@1, "Wrong number of arguments for instruction not.\n");
             return 1;
         }
 
-        assembly.SetInstruction($1, eInstructionType::DATA);
+        assembly.SetInstruction($1, eAssemblyIdentifierType::DATA);
         assembly.SetMultipleOperands($2);
     }
     ;
 
 NT_DataInstructionIdentifier:
-    XCHG { $$ = eInstructionIdentifier::XCHG; }
-    | ADD { $$ = eInstructionIdentifier::ADD; }
-    | SUB { $$ = eInstructionIdentifier::SUB; }
-    | MUL { $$ = eInstructionIdentifier::MUL; }
-    | DIV { $$ = eInstructionIdentifier::DIV; }
-    | NOT { $$ = eInstructionIdentifier::NOT; }
-    | AND { $$ = eInstructionIdentifier::AND; }
-    | OR  { $$ = eInstructionIdentifier::OR;  }
-    | XOR { $$ = eInstructionIdentifier::XOR; }
-    | SHL { $$ = eInstructionIdentifier::SHL; }
-    | SHR { $$ = eInstructionIdentifier::SHR; }
+    XCHG { $$ = eAssemblyIdentifier::XCHG; }
+    | ADD { $$ = eAssemblyIdentifier::ADD; }
+    | SUB { $$ = eAssemblyIdentifier::SUB; }
+    | MUL { $$ = eAssemblyIdentifier::MUL; }
+    | DIV { $$ = eAssemblyIdentifier::DIV; }
+    | NOT { $$ = eAssemblyIdentifier::NOT; }
+    | AND { $$ = eAssemblyIdentifier::AND; }
+    | OR  { $$ = eAssemblyIdentifier::OR;  }
+    | XOR { $$ = eAssemblyIdentifier::XOR; }
+    | SHL { $$ = eAssemblyIdentifier::SHL; }
+    | SHR { $$ = eAssemblyIdentifier::SHR; }
     ;
 
 NT_DataInstructionOperands:
@@ -286,13 +287,13 @@ NT_DataInstructionOperands:
 NT_MemoryInstruction:
     LD NT_Operand "," "%" GPR
     {
-        assembly.SetInstruction(eInstructionIdentifier::LD, eInstructionType::MEMORY);
+        assembly.SetInstruction(eAssemblyIdentifier::LD, eAssemblyIdentifierType::MEMORY);
         assembly.SetOperand($2);
         assembly.SetOperand($5, eOperandType::GPR);
     }
     | ST "%" GPR "," NT_Operand
     {
-        assembly.SetInstruction(eInstructionIdentifier::ST, eInstructionType::MEMORY);
+        assembly.SetInstruction(eAssemblyIdentifier::ST, eAssemblyIdentifierType::MEMORY);
         assembly.SetOperand($3, eOperandType::GPR);
         assembly.SetOperand($5);
     }
@@ -302,13 +303,13 @@ NT_MemoryInstruction:
 NT_SpecialInstruction:
     CSRRD "%" CSR "," "%" GPR
     {
-        assembly.SetInstruction(eInstructionIdentifier::CSRRD, eInstructionType::SPECIAL);
+        assembly.SetInstruction(eAssemblyIdentifier::CSRRD, eAssemblyIdentifierType::SPECIAL);
         assembly.SetOperand($3, eOperandType::CSR);
         assembly.SetOperand($6, eOperandType::GPR);
     }
     | CSRWR "%" GPR "," "%" CSR
     {
-        assembly.SetInstruction(eInstructionIdentifier::CSRWR, eInstructionType::SPECIAL);
+        assembly.SetInstruction(eAssemblyIdentifier::CSRWR, eAssemblyIdentifierType::SPECIAL);
         assembly.SetOperand($3, eOperandType::GPR);
         assembly.SetOperand($6, eOperandType::CSR);
     }
@@ -318,14 +319,14 @@ NT_SpecialInstruction:
 NT_StackInstruction:
     NT_StackInstructionIdentifier "%" GPR
     {
-        assembly.SetInstruction($1, eInstructionType::STACK);
+        assembly.SetInstruction($1, eAssemblyIdentifierType::STACK);
         assembly.SetOperand($3, eOperandType::GPR);
     }
     ;
 
 NT_StackInstructionIdentifier:
-    PUSH { $$ = eInstructionIdentifier::PUSH; }
-    | POP { $$ = eInstructionIdentifier::POP; }
+    PUSH { $$ = eAssemblyIdentifier::PUSH; }
+    | POP { $$ = eAssemblyIdentifier::POP; }
     ;
 //---------------------STACK-END---------------------
 //---------------------LISTS-------------------------

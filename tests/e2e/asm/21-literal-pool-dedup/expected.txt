@@ -1,0 +1,11 @@
+
+               Name         Section  Offset Defined  Extern  Global   Value Big
+  1            text            text       0       1       0       0       0   0
+
+text 12
+00 08 1f 92 
+00 08 2f 92 
+00 04 30 91 
+text.constants 
+
+Relocations 

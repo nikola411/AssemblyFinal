@@ -2,11 +2,12 @@
 #define INSTRUCTION_MAPPING_HPP
 
 #include "Instruction.hpp"
-#include "AssemblyInstruction.hpp"
+#include "AssemblyLine.hpp"
 #include "ErrorHandling.hpp"
 
 #include <map>
 #include <set>
+#include <tuple>
 #include <vector>
 
 namespace Conversion
@@ -46,13 +47,11 @@ namespace Conversion
     using ManipulationPair = std::pair<ValueToUseMasks, InstructionMethod>;
     using ProcessorInstructionMetadata = std::pair<Instruction, std::vector<ManipulationPair>>;
 
-    using AssemblyInstructionMetadata = std::vector<ProcessorInstructionMetadata>;
-    using ValueSizeMap = std::map<eValueSize, AssemblyInstructionMetadata>;
-    using PayloadTypeMap = std::map<ePayloadType, ValueSizeMap>;
-    using AddressingMap = std::map<eAddressingType, PayloadTypeMap>;
-    using InstructionMap = std::map<eInstructionIdentifier, AddressingMap>;
+    using AssemblyLineMetadata = std::vector<ProcessorInstructionMetadata>;
+    using InstructionKey = std::tuple<eAssemblyIdentifier, eAddressingType, ePayloadType, eValueSize>;
+    using InstructionMap = std::map<InstructionKey, AssemblyLineMetadata>;
 
-    using BigValueInstructions = std::set<eInstructionIdentifier>;
+    using BigValueInstructions = std::set<eAssemblyIdentifier>;
 
     struct SizeEntry
     {
@@ -103,22 +102,23 @@ namespace Conversion
         return { valueToUse, method };
     }
 
-    static void InstructionEntry(eInstructionIdentifier instruction, std::vector<AddressingEntry> entries);
-    static void NONE_Instruction(eInstructionIdentifier instruction, std::vector<ProcessorInstructionMetadata> processorInstructions);
-    static void GPR_Instruction(eInstructionIdentifier instruction, std::vector<ProcessorInstructionMetadata> processorInstructions);
-    static void VALUE_Instruction(eInstructionIdentifier instruction, eAddressingType type, eValueSize size, std::vector<ProcessorInstructionMetadata> processorInstructions);
-    static void CSR_Instruction(eInstructionIdentifier instruction, std::vector<ProcessorInstructionMetadata> processorInstructions);
+    static void InstructionEntry(eAssemblyIdentifier instruction, std::vector<AddressingEntry> entries);
+    static void NONE_Instruction(eAssemblyIdentifier instruction, std::vector<ProcessorInstructionMetadata> processorInstructions);
+    static void GPR_Instruction(eAssemblyIdentifier instruction, std::vector<ProcessorInstructionMetadata> processorInstructions);
+    static void VALUE_Instruction(eAssemblyIdentifier instruction, eAddressingType type, eValueSize size, std::vector<ProcessorInstructionMetadata> processorInstructions);
+    static void CSR_Instruction(eAssemblyIdentifier instruction, std::vector<ProcessorInstructionMetadata> processorInstructions);
     static void PopulateSpecial();
-    
-    static eValueSize GetOperandValueSize(const AssemblyInstruction::s_ptr& instruction);
 
     // public functions of this interface
-    void PopulateInstructionsMap();
-    AssemblyInstructionMetadata GetProcessorInstructions(const AssemblyInstruction::s_ptr& instruction);
-    ePayloadType OperandTypeToPayloadType(eOperandType type);
-    uint16_t GetOperandValue(const AssemblyInstruction::s_ptr& instruction, ValueToUseMasks enumerator);
 
-    bool IsBigValueInstruction(const eInstructionIdentifier& instruction, const eAddressingType& addressing, const ePayloadType& payloadType);
+    eValueSize GetOperandValueSize(const AssemblyLine::s_ptr& instruction);
+
+    void PopulateInstructionsMap();
+    AssemblyLineMetadata GetProcessorInstructions(const AssemblyLine::s_ptr& instruction);
+    ePayloadType OperandTypeToPayloadType(eOperandType type);
+    uint16_t GetOperandValue(const AssemblyLine::s_ptr& instruction, ValueToUseMasks enumerator);
+
+    bool IsBigValueInstruction(const eAssemblyIdentifier& instruction, const eAddressingType& addressing, const ePayloadType& payloadType);
 }
 
 

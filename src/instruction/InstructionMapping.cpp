@@ -2,61 +2,37 @@
 
 using namespace Conversion;
 
-void Conversion::InstructionEntry(eInstructionIdentifier instruction, std::vector<AddressingEntry> entries)
+void Conversion::InstructionEntry(eAssemblyIdentifier instruction, std::vector<AddressingEntry> entries)
 {
     for (const auto& addr : entries)
-    {
         for (const auto& payload : addr.payloadEntry)
-        {
             for (const auto& size : payload.sizes)
             {
                 if (size.value == eValueSize::SIZE_BIG)
                     bigValueInstructions.insert(instruction);
 
-                methods[instruction][addr.type][payload.type][size.value] = size.processorInstructions;
+                methods[{instruction, addr.type, payload.type, size.value}] = size.processorInstructions;
             }
-        }
-    }
 }
 
-void Conversion::NONE_Instruction(eInstructionIdentifier instruction, std::vector<ProcessorInstructionMetadata> processorInstructions)
+void Conversion::NONE_Instruction(eAssemblyIdentifier instruction, std::vector<ProcessorInstructionMetadata> processorInstructions)
 {
-    methods
-        [instruction]
-        [eAddressingType::ADDR_NONE]
-        [ePayloadType::PAYLOAD_NONE]
-        [eValueSize::SIZE_NONE]
-        = processorInstructions;
+    methods[{instruction, eAddressingType::ADDR_NONE, ePayloadType::PAYLOAD_NONE, eValueSize::SIZE_NONE}] = processorInstructions;
 }
 
-void Conversion::GPR_Instruction(eInstructionIdentifier instruction, std::vector<ProcessorInstructionMetadata> processorInstructions)
+void Conversion::GPR_Instruction(eAssemblyIdentifier instruction, std::vector<ProcessorInstructionMetadata> processorInstructions)
 {
-    methods
-        [instruction]
-        [eAddressingType::ADDR_DIRECT]
-        [ePayloadType::PAYLOAD_GPR]
-        [eValueSize::SIZE_NONE]
-        = processorInstructions;
+    methods[{instruction, eAddressingType::ADDR_DIRECT, ePayloadType::PAYLOAD_GPR, eValueSize::SIZE_NONE}] = processorInstructions;
 }
 
-void Conversion::VALUE_Instruction(eInstructionIdentifier instruction, eAddressingType type, eValueSize size, std::vector<ProcessorInstructionMetadata> processorInstructions)
+void Conversion::VALUE_Instruction(eAssemblyIdentifier instruction, eAddressingType type, eValueSize size, std::vector<ProcessorInstructionMetadata> processorInstructions)
 {
-    methods
-        [instruction]
-        [type]
-        [ePayloadType::PAYLOAD_VALUE]
-        [size]
-        = processorInstructions;
+    methods[{instruction, type, ePayloadType::PAYLOAD_VALUE, size}] = processorInstructions;
 }
 
-void Conversion::CSR_Instruction(eInstructionIdentifier instruction, std::vector<ProcessorInstructionMetadata> processorInstructions)
+void Conversion::CSR_Instruction(eAssemblyIdentifier instruction, std::vector<ProcessorInstructionMetadata> processorInstructions)
 {
-    methods
-        [instruction]
-        [eAddressingType::ADDR_DIRECT]
-        [ePayloadType::PAYLOAD_CSR]
-        [eValueSize::SIZE_NONE]
-        = processorInstructions;
+    methods[{instruction, eAddressingType::ADDR_DIRECT, ePayloadType::PAYLOAD_CSR, eValueSize::SIZE_NONE}] = processorInstructions;
 }
 
 void Conversion::PopulateSpecial()
@@ -69,18 +45,18 @@ void Conversion::PopulateSpecial()
             {
                 SizeEntry(SIZE_NONE,
                 {
-                    ProcessorInstruction(0x91000000,
+                    ProcessorInstruction(0x91000000, // OC=1001 MOD=0001: gpr[A]<=gpr[B]+D (D=0, ld %rS,%rD)
                     {
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterB)
-                    }) 
+                    })
                 })
             }),
             PayloadTypeEntry(PAYLOAD_VALUE,
             {
                 SizeEntry(SIZE_BIG,
                 {
-                    ProcessorInstruction(0x920F0000,
+                    ProcessorInstruction(0x920F0000, // OC=1001 MOD=0010 RegB=r15(pc): gpr[A]<=mem32[pc+D]  (load big literal from pool)
                     {
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
                         ManipulationEntry(POOL_ENTRY | FIRST_OPERAND, &Instruction::SetDisplacement)
@@ -88,7 +64,7 @@ void Conversion::PopulateSpecial()
                 }),
                 SizeEntry(SIZE_SMALL,
                 {
-                    ProcessorInstruction(0x91000000,
+                    ProcessorInstruction(0x91000000, // OC=1001 MOD=0001: gpr[A]<=gpr[0]+D=D  (immediate small literal)
                     {
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetDisplacement)
@@ -102,7 +78,7 @@ void Conversion::PopulateSpecial()
             {
                 SizeEntry(SIZE_NONE,
                 {
-                    ProcessorInstruction(0x92000000,
+                    ProcessorInstruction(0x92000000, // OC=1001 MOD=0010: gpr[A]<=mem32[gpr[B]+0+0]  (ld [%rS],%rD)
                     {
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterB)
@@ -113,7 +89,7 @@ void Conversion::PopulateSpecial()
             {
                 SizeEntry(SIZE_SMALL,
                 {
-                    ProcessorInstruction(0x92000000,
+                    ProcessorInstruction(0x92000000, // OC=1001 MOD=0010: gpr[A]<=mem32[0+0+D]  (ld addr,%rD, small addr)
                     {
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetDisplacement)
@@ -127,7 +103,7 @@ void Conversion::PopulateSpecial()
             {
                 SizeEntry(SIZE_SMALL,
                 {
-                    ProcessorInstruction(0x92000000,
+                    ProcessorInstruction(0x92000000, // OC=1001 MOD=0010: gpr[A]<=mem32[gpr[B]+0+D]  (ld [%rS+offset],%rD)
                     {
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterB),
@@ -146,18 +122,18 @@ void Conversion::PopulateSpecial()
             {
                 SizeEntry(SIZE_NONE,
                 {
-                    ProcessorInstruction(0x80000000,
+                    ProcessorInstruction(0x80000000, // OC=1000 MOD=0000: mem32[0+gpr[B]+0]<=gpr[C]  (st %rS,[%rD])
                     {
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterC),
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterB)
-                    }) 
+                    })
                 })
             }),
             PayloadTypeEntry(PAYLOAD_VALUE,
             {
                 SizeEntry(SIZE_BIG,
                 {
-                    ProcessorInstruction(0x81F00000,
+                    ProcessorInstruction(0x81F00000, // OC=1000 MOD=0001 RegA=r15(pc): pc<=pc+D; mem32[pc]<=gpr[C]  (st %rS, big addr via pool)
                     {
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterC),
                         ManipulationEntry(POOL_ENTRY | SECOND_OPERAND, &Instruction::SetDisplacement)
@@ -165,7 +141,7 @@ void Conversion::PopulateSpecial()
                 }),
                 SizeEntry(SIZE_SMALL,
                 {
-                    ProcessorInstruction(0x80000000,
+                    ProcessorInstruction(0x80000000, // OC=1000 MOD=0000: mem32[0+0+D]<=gpr[C]  (st %rS, small addr)
                     {
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterC),
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetDisplacement)
@@ -179,7 +155,7 @@ void Conversion::PopulateSpecial()
             {
                 SizeEntry(SIZE_NONE,
                 {
-                    ProcessorInstruction(0x81000000,
+                    ProcessorInstruction(0x81000000, // OC=1000 MOD=0001: gpr[A]<=gpr[A]+D; mem32[gpr[A]]<=gpr[C]  (D=0, st %rS,[%rD])
                     {
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterC),
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA)
@@ -190,7 +166,7 @@ void Conversion::PopulateSpecial()
             {
                 SizeEntry(SIZE_SMALL,
                 {
-                    ProcessorInstruction(0x81000000,
+                    ProcessorInstruction(0x81000000, // OC=1000 MOD=0001: gpr[A]<=gpr[A]+D; mem32[gpr[A]]<=gpr[C]  (st %rS, small addr)
                     {
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterC),
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetDisplacement)
@@ -204,7 +180,7 @@ void Conversion::PopulateSpecial()
             {
                 SizeEntry(SIZE_SMALL,
                 {
-                    ProcessorInstruction(0x81000000,
+                    ProcessorInstruction(0x81000000, // OC=1000 MOD=0001: gpr[A]<=gpr[A]+D; mem32[gpr[A]]<=gpr[C]  (st %rS,[%rD+offset])
                     {
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterC),
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
@@ -223,14 +199,14 @@ void Conversion::PopulateSpecial()
             {
                 SizeEntry(SIZE_BIG,
                 {
-                    ProcessorInstruction(0x21F00000,
+                    ProcessorInstruction(0x21F00000, // OC=0010 MOD=0001 RegA=r15(pc): push pc; pc<=mem32[pc+D]  (call big addr via pool)
                     {
                         ManipulationEntry(POOL_ENTRY | FIRST_OPERAND, &Instruction::SetDisplacement)
                     })
                 }),
                 SizeEntry(SIZE_SMALL,
                 {
-                    ProcessorInstruction(0x20000000,
+                    ProcessorInstruction(0x20000000, // OC=0010 MOD=0000: push pc; pc<=gpr[0]+gpr[0]+D=D  (call small addr)
                     {
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetDisplacement)
                     })
@@ -247,14 +223,14 @@ void Conversion::PopulateSpecial()
             {
                 SizeEntry(SIZE_BIG,
                 {
-                    ProcessorInstruction(0x38F00000,
+                    ProcessorInstruction(0x38F00000, // OC=0011 MOD=1000 RegA=r15(pc): pc<=mem32[pc+D]  (jmp big addr via pool)
                     {
                         ManipulationEntry(POOL_ENTRY | FIRST_OPERAND, &Instruction::SetDisplacement)
                     })
                 }),
                 SizeEntry(SIZE_SMALL,
                 {
-                    ProcessorInstruction(0x30000000,
+                    ProcessorInstruction(0x30000000, // OC=0011 MOD=0000: pc<=gpr[0]+D=D  (jmp small addr)
                     {
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetDisplacement)
                     })
@@ -271,7 +247,7 @@ void Conversion::PopulateSpecial()
             {
                 SizeEntry(SIZE_BIG,
                 {
-                    ProcessorInstruction(0x39F00000,
+                    ProcessorInstruction(0x39F00000, // OC=0011 MOD=1001 RegA=r15(pc): if(gpr[B]==gpr[C]) pc<=mem32[pc+D]  (beq big)
                     {
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterB),
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterC),
@@ -280,7 +256,7 @@ void Conversion::PopulateSpecial()
                 }),
                 SizeEntry(SIZE_SMALL,
                 {
-                    ProcessorInstruction(0x31000000,
+                    ProcessorInstruction(0x31000000, // OC=0011 MOD=0001: if(gpr[B]==gpr[C]) pc<=gpr[0]+D=D  (beq small)
                     {
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterB),
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterC),
@@ -299,7 +275,7 @@ void Conversion::PopulateSpecial()
             {
                 SizeEntry(SIZE_BIG,
                 {
-                    ProcessorInstruction(0x3AF00000,
+                    ProcessorInstruction(0x3AF00000, // OC=0011 MOD=1010 RegA=r15(pc): if(gpr[B]!=gpr[C]) pc<=mem32[pc+D]  (bne big)
                     {
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterB),
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterC),
@@ -308,7 +284,7 @@ void Conversion::PopulateSpecial()
                 }),
                 SizeEntry(SIZE_SMALL,
                 {
-                    ProcessorInstruction(0x32000000,
+                    ProcessorInstruction(0x32000000, // OC=0011 MOD=0010: if(gpr[B]!=gpr[C]) pc<=gpr[0]+D=D  (bne small)
                     {
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterB),
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterC),
@@ -327,7 +303,7 @@ void Conversion::PopulateSpecial()
             {
                 SizeEntry(SIZE_BIG,
                 {
-                    ProcessorInstruction(0x3BF00000,
+                    ProcessorInstruction(0x3BF00000, // OC=0011 MOD=1011 RegA=r15(pc): if(gpr[B] signed> gpr[C]) pc<=mem32[pc+D]  (bgt big)
                     {
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterB),
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterC),
@@ -336,7 +312,7 @@ void Conversion::PopulateSpecial()
                 }),
                 SizeEntry(SIZE_SMALL,
                 {
-                    ProcessorInstruction(0x33000000,
+                    ProcessorInstruction(0x33000000, // OC=0011 MOD=0011: if(gpr[B] signed> gpr[C]) pc<=gpr[0]+D=D  (bgt small)
                     {
                         ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterB),
                         ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterC),
@@ -350,27 +326,27 @@ void Conversion::PopulateSpecial()
 
 void Conversion::PopulateInstructionsMap()
 {
-    NONE_Instruction(HALT, SingleProcessorInstruction(0x00000000, NO_MANIPULATION));
+    NONE_Instruction(HALT, SingleProcessorInstruction(0x00000000, NO_MANIPULATION)); // OC=0000: zaustavlja procesor
 
-    NONE_Instruction(INT, SingleProcessorInstruction(0x10000000, NO_MANIPULATION));
+    NONE_Instruction(INT, SingleProcessorInstruction(0x10000000, NO_MANIPULATION)); // OC=0001: push status; push pc; cause<=4; status<=status&(~1); pc<=handler
 
     NONE_Instruction
     (
         IRET,
         {
-            ProcessorInstruction(0x93FE0004, NO_MANIPULATION),
-            ProcessorInstruction(0x970E0004, NO_MANIPULATION)
+            ProcessorInstruction(0x93FE0004, NO_MANIPULATION), // OC=1001 MOD=0011: pc<=mem32[sp]; sp<=sp+4  (pop pc)
+            ProcessorInstruction(0x970E0004, NO_MANIPULATION)  // OC=1001 MOD=0111: status<=mem32[sp]; sp<=sp+4  (pop status)
         }
     );
 
-    NONE_Instruction(RET, SingleProcessorInstruction(0x93FE004, NO_MANIPULATION));
+    NONE_Instruction(RET, SingleProcessorInstruction(0x93FE004, NO_MANIPULATION)); // OC=1001 MOD=0011: pc<=mem32[sp]; sp<=sp+4  (pop pc)
 
     GPR_Instruction
     (
         PUSH,
         SingleProcessorInstruction
         (
-            0x81E00FFC,
+            0x81E00FFC, // OC=1000 MOD=0001: sp<=sp+(-4); mem32[sp]<=gpr[C]
             SingleManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterC)
         )
     );
@@ -380,7 +356,7 @@ void Conversion::PopulateInstructionsMap()
         POP,
         SingleProcessorInstruction
         (
-            0x930E0004,
+            0x930E0004, // OC=1001 MOD=0011: gpr[A]<=mem32[sp]; sp<=sp+4
             SingleManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterA)
         )
     );
@@ -390,7 +366,7 @@ void Conversion::PopulateInstructionsMap()
         XCHG,
         SingleProcessorInstruction
         (
-            0x40000000,
+            0x40000000, // OC=0100: temp<=gpr[B]; gpr[B]<=gpr[C]; gpr[C]<=temp
             {
                 ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterB),
                 ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterC)
@@ -403,7 +379,7 @@ void Conversion::PopulateInstructionsMap()
         ADD,
         SingleProcessorInstruction
         (
-            0x50000000,
+            0x50000000, // OC=0101 MOD=0000: gpr[A]<=gpr[B]+gpr[C]
             {
                 ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterC),
                 ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
@@ -417,7 +393,7 @@ void Conversion::PopulateInstructionsMap()
         SUB,
         SingleProcessorInstruction
         (
-            0x51000000,
+            0x51000000, // OC=0101 MOD=0001: gpr[A]<=gpr[B]-gpr[C]
             {
                 ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterC),
                 ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
@@ -431,7 +407,7 @@ void Conversion::PopulateInstructionsMap()
         MUL,
         SingleProcessorInstruction
         (
-            0x52000000,
+            0x52000000, // OC=0101 MOD=0010: gpr[A]<=gpr[B]*gpr[C]
             {
                 ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterC),
                 ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
@@ -445,7 +421,7 @@ void Conversion::PopulateInstructionsMap()
         DIV,
         SingleProcessorInstruction
         (
-            0x53000000,
+            0x53000000, // OC=0101 MOD=0011: gpr[A]<=gpr[B]/gpr[C]
             {
                 ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterC),
                 ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
@@ -459,7 +435,7 @@ void Conversion::PopulateInstructionsMap()
         NOT,
         SingleProcessorInstruction
         (
-            0x60000000,
+            0x60000000, // OC=0110 MOD=0000: gpr[A]<=~gpr[B]
             {
                 ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterA),
                 ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterB)
@@ -472,7 +448,7 @@ void Conversion::PopulateInstructionsMap()
         AND,
         SingleProcessorInstruction
         (
-            0x61000000,
+            0x61000000, // OC=0110 MOD=0001: gpr[A]<=gpr[B]&gpr[C]
             {
                 ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterC),
                 ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
@@ -486,7 +462,7 @@ void Conversion::PopulateInstructionsMap()
         OR,
         SingleProcessorInstruction
         (
-            0x62000000,
+            0x62000000, // OC=0110 MOD=0010: gpr[A]<=gpr[B]|gpr[C]
             {
                 ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterC),
                 ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
@@ -500,7 +476,7 @@ void Conversion::PopulateInstructionsMap()
         XOR,
         SingleProcessorInstruction
         (
-            0x63000000,
+            0x63000000, // OC=0110 MOD=0011: gpr[A]<=gpr[B]^gpr[C]
             {
                 ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterC),
                 ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
@@ -514,7 +490,7 @@ void Conversion::PopulateInstructionsMap()
         SHL,
         SingleProcessorInstruction
         (
-            0x70000000,
+            0x70000000, // OC=0111 MOD=0000: gpr[A]<=gpr[B]<<gpr[C]
             {
                 ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterC),
                 ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
@@ -528,7 +504,7 @@ void Conversion::PopulateInstructionsMap()
         SHR,
         SingleProcessorInstruction
         (
-            0x71000000,
+            0x71000000, // OC=0111 MOD=0001: gpr[A]<=gpr[B]>>gpr[C]
             {
                 ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterC),
                 ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
@@ -542,7 +518,7 @@ void Conversion::PopulateInstructionsMap()
         CSRRD,
         SingleProcessorInstruction
         (
-            0x90000000,
+            0x90000000, // OC=1001 MOD=0000: gpr[A]<=csr[B]
             {
                 ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
                 ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterB)
@@ -552,10 +528,10 @@ void Conversion::PopulateInstructionsMap()
 
     CSR_Instruction
     (
-        CSRRD,
+        CSRWR,
         SingleProcessorInstruction
         (
-            0x95000000,
+            0x95000000, // OC=1001 MOD=0101: csr[A]<=csr[B]|D
             {
                 ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterA),
                 ManipulationEntry(FIRST_OPERAND, &Instruction::SetRegisterB)
@@ -570,44 +546,42 @@ void Conversion::PopulateInstructionsMap()
 /// @param instruction 
 /// @param index 
 /// @return 
-eValueSize Conversion::GetOperandValueSize(const AssemblyInstruction::s_ptr& instruction)
+eValueSize Conversion::GetOperandValueSize(const AssemblyLine::s_ptr& instruction)
 {
     auto index = instruction->GetVariableOperandIndex();
     if (index == -1)
         return eValueSize::SIZE_NONE;
-    
+
     if (index >= instruction->operands.size())
         throw AssemblyException();
-    
-    return instruction->operands[index].asmValue > 0x7FF ? eValueSize::SIZE_BIG : eValueSize::SIZE_SMALL;
+
+    auto& op = instruction->operands[index];
+    if (op.type == eOperandType::GPR || op.type == eOperandType::CSR)
+    {
+        if (instruction->GetAddressingType() == eAddressingType::ADDR_MEMORY_OFFSET)
+            return op.asmOffset > 0x7FF ? eValueSize::SIZE_BIG : eValueSize::SIZE_SMALL;
+        return eValueSize::SIZE_NONE;
+    }
+
+    return op.asmValue > 0x7FF ? eValueSize::SIZE_BIG : eValueSize::SIZE_SMALL;
 }
 
 
-#define CONTAINS_THROW(map, entry) \
-    if (map.find(entry) == map.end()) \
+
+AssemblyLineMetadata Conversion::GetProcessorInstructions(const AssemblyLine::s_ptr& instruction)
+{
+    InstructionKey key = {
+        instruction->identifier,
+        instruction->GetAddressingType(),
+        OperandTypeToPayloadType(instruction->GetOperandType()),
+        GetOperandValueSize(instruction)
+    };
+
+    auto it = methods.find(key);
+    if (it == methods.end())
         throw AssemblyException();
 
-#define CONTAINS_NO_THROW(map, entry) \
-    if (map.find(entry) == map.end()) \
-        return false;
-
-
-AssemblyInstructionMetadata Conversion::GetProcessorInstructions(const AssemblyInstruction::s_ptr& instruction)
-{
-    auto identifier = instruction->identifier;
-    auto addressing = instruction->GetAddressingType();
-
-    auto operandType = instruction->GetOperandType();
-
-    auto payloadType = OperandTypeToPayloadType(operandType);
-    auto sizeValue = GetOperandValueSize(instruction);
-
-    CONTAINS_THROW(methods, identifier);
-    CONTAINS_THROW(methods[identifier], addressing);
-    CONTAINS_THROW(methods[identifier][addressing], payloadType);
-    CONTAINS_THROW(methods[identifier][addressing][payloadType], sizeValue);
-
-    return methods[identifier][addressing][payloadType][sizeValue];
+    return it->second;
 }
 
 ePayloadType Conversion::OperandTypeToPayloadType(eOperandType type)
@@ -633,7 +607,7 @@ std::map<ValueToUseMasks, int> valueMaskToOperandIndex =
     { POOL_ENTRY, INT32_MAX }
 };
 
-uint16_t Conversion::GetOperandValue(const AssemblyInstruction::s_ptr& instruction, ValueToUseMasks enumerator)
+uint16_t Conversion::GetOperandValue(const AssemblyLine::s_ptr& instruction, ValueToUseMasks enumerator)
 {
     int index = valueMaskToOperandIndex[enumerator];
     if (index >= 0)
@@ -643,11 +617,7 @@ uint16_t Conversion::GetOperandValue(const AssemblyInstruction::s_ptr& instructi
     return instruction->operands[index].asmOffset;
 }
 
-bool Conversion::IsBigValueInstruction(const eInstructionIdentifier& instruction, const eAddressingType& addressing, const ePayloadType& payloadType)
+bool Conversion::IsBigValueInstruction(const eAssemblyIdentifier& instruction, const eAddressingType& addressing, const ePayloadType& payloadType)
 {
-    CONTAINS_NO_THROW(methods, instruction);
-    CONTAINS_NO_THROW(methods[instruction], addressing);
-    CONTAINS_NO_THROW(methods[instruction][addressing], payloadType);
-
-    return methods[instruction][addressing][payloadType].find(eValueSize::SIZE_BIG) != methods[instruction][addressing][payloadType].end();
+    return methods.find({instruction, addressing, payloadType, eValueSize::SIZE_BIG}) != methods.end();
 }

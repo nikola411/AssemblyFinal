@@ -6,7 +6,7 @@
 class AssemblyAdapter
 {
 public:
-    void SetInstruction(eInstructionIdentifier instruction, eInstructionType type);
+    void SetInstruction(eAssemblyIdentifier instruction, eAssemblyIdentifierType type);
     void SetOperand(std::string value, eOperandType type);
     void SetOperand(ParserOperand& operand);
     void SetMultipleOperands(std::vector<ParserOperand> operands);

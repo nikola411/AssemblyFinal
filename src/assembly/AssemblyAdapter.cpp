@@ -1,8 +1,8 @@
 #include "AssemblyAdapter.hpp"
 
-void AssemblyAdapter::SetInstruction(eInstructionIdentifier instruction, eInstructionType type)
+void AssemblyAdapter::SetInstruction(eAssemblyIdentifier instruction, eAssemblyIdentifierType type)
 {
-    assembly.mCurrentInstruction = std::make_shared<AssemblyInstruction>();
+    assembly.mCurrentInstruction = std::make_shared<AssemblyLine>();
     assembly.mCurrentInstruction->identifier = instruction;
     assembly.mCurrentInstruction->type = type;
 }
@@ -32,12 +32,12 @@ void AssemblyAdapter::FinishInstruction()
 
     switch(assembly.mCurrentInstruction->type)
     {
-        case eInstructionType::LABEL:
+        case eAssemblyIdentifierType::LABEL:
         {
             assembly.HandleLabel();
             break;
         }
-        case eInstructionType::DIRECTIVE:
+        case eAssemblyIdentifierType::DIRECTIVE:
         {
             assembly.HandleDirective();
             break;
@@ -47,7 +47,7 @@ void AssemblyAdapter::FinishInstruction()
             assembly.HandleInstruction();
             break;
         }
-    }   
+    }
 
     assembly.mProgram.push_back(assembly.mCurrentInstruction);
     return;

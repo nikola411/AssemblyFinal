@@ -1,0 +1,12 @@
+
+               Name         Section  Offset Defined  Extern  Global   Value Big
+  1            data            data       0       1       0       0       0   0
+  2           start            data       0       1       0       0       0   0
+  3    ptr_to_start            data       4       1       0       0       4   0
+
+data 8
+01 00 00 00 
+00 00 00 00 
+data.constants 
+
+Relocations 

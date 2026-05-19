@@ -44,9 +44,8 @@ int main(int argc, char* argv[])
         auto adapter = new AssemblyAdapter();
         Driver driver(debug, adapter);
         driver.parse(input_file);
-        adapter->Backpatch();       
+        adapter->Backpatch();
         adapter->GenerateOutput(output_file);
-        
         delete adapter;
     }
     catch(const FatalException& e)
@@ -61,6 +60,6 @@ int main(int argc, char* argv[])
     {
         std::cerr << "\033[31mERROR: " <<  e.what() << '\n';
     }
-    
+
     return 0;
 }

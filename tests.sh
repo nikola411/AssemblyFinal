@@ -4,7 +4,7 @@ dependencies_init ()
 {
     make src=Utility Utility.src
     make src=Base Base.src
-    make src=AssemblyInstruction path='./instruction/' AssemblyInstruction
+    make src=AssemblyLine path='./instruction/' AssemblyLine
 }
 
 if [ "$@" = "make" ]

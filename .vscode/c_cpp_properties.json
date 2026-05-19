@@ -9,10 +9,11 @@
                 "${workspaceFolder}/misc/parser",
                 "${workspaceFolder}/misc/scanner",
                 "${workspaceFolder}/inc/instruction",
-                "${workspaceFolder}/tests/unit-tests/googletest/googlemock/include"
+                "${workspaceFolder}/inc/util",
+                "${workspaceFolder}/inc/emulator"
             ],
             "defines": [],
-            "compilerPath": "/usr/bin/gcc",
+            "compilerPath": "/usr/bin/g++",
             "cStandard": "c17",
             "cppStandard": "gnu++17",
             "intelliSenseMode": "linux-gcc-x64"

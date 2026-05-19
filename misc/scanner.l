@@ -2,7 +2,7 @@
     #include <cerrno>
     #include <climits>
     #include <cstdlib>
-    #include <cstring> 
+    #include <cstring>
     #include <string>
     #include "Driver.hpp"
     #include "parser.hpp"
@@ -26,7 +26,7 @@ blank [ \t\r]
 
 {blank}+   loc.step ();
 \n+        loc.lines (yyleng); loc.step ();
-#.* 
+#.*
 
 .global  return yy::parser::make_GLOBAL (loc);
 .extern  return yy::parser::make_EXTERN (loc);

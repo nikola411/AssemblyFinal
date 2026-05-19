@@ -1,47 +1,22 @@
 SUCCESS = "$(COLOR_BLUE)Success!$(COLOR_END)"
 
-#LINKER_INCLUDE_DIR = ./inc/linker
-#LINKER_INCLUDES = -I${LINKER_INCLUDE_DIR} -I${UTIL}
-#LINKER_SOURCE =
-#LINKER_SOURCE += $(wildcard ./src/linker/*.cpp)
-#LINKER_SOURCE += ${UTIL_SOURCE}
-#LINKER_OUTPUT = -o ./linker
-#
-#
-#EMULATOR_INC_DIR = ./inc/emulator
-#EMULATOR_INCLUDES = -I${EMULATOR_INC_DIR} -I${UTIL}
-#EMULATOR_SOURCE = 
-#EMULATOR_SOURCE += $(wildcard ./src/emulator/*.cpp)
-#EMULATOR_SOURCE += ${UTIL_SOURCE}
-#EMULATOR_OUTPUT = -o ./emulator
-
 DEBUG_ENABLED = 0
 
 all: flex bison asm
 	@echo "$(COLOR_GREEN)Build successful!$(COLOR_END)"
 
-#emu:
-#	@echo "Building emulator..."
-#	@g++ -g ${EMULATOR_INCLUDES} ${GPP_FLAGS} ${EMULATOR_SOURCE} ${EMULATOR_OUTPUT}
-#	@echo "$(COLOR_BLUE)Success!$(COLOR_END)"
-
-#lnk:
-#	@echo "Building linker..."
-#	@g++ -g ${LINKER_INCLUDES} ${GPP_FLAGS} ${LINKER_SOURCE} ${LINKER_OUTPUT}
-#	@echo "$(COLOR_BLUE)Success!$(COLOR_END)"
-
-#asm:
-#	@echo "Building assembly..."
-#	@g++ -g ${ASSEMBLY_INCLUDES} ${GPP_FLAGS} ${ASSEMBLY_SOURCE} ${ASSEMBLY_OUTPUT}
-#	@echo ${SUCCESS}
-
-all: flex bison asm
 
 ASM_DIR = ./inc/assembly/
+EMU_DIR = ./inc/emulator/
 
 asm: flex bison
 	@echo "Building assembly..."
 	@$(MAKE) -s asm -C $(ASM_DIR)
+	@echo ${SUCCESS}
+
+emu:
+	@echo "Building emulator..."
+	@$(MAKE) -s emu -C $(EMU_DIR)
 	@echo ${SUCCESS}
 
 FLEX_DIR = ./misc/
