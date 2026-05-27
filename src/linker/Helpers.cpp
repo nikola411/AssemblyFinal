@@ -1,0 +1,135 @@
+#include "Helpers.hpp"
+
+#include "Linker.hpp"
+
+bool StartsWith(const std::string& input, const std::string& c1)
+{
+    return input.substr(0, c1.size()) == c1;
+}
+
+bool EndsWith(const std::string& in, const std::string& c1)
+{
+    if (c1.size() > in.size()) return false;
+    return in.substr(in.size() - c1.size(), in.size()) == c1;
+}
+
+std::vector<std::string> Split(const std::string& input, char delim)
+{
+    std::vector<std::string> result = {};
+    int last = 0;
+    for (int i = 0; i < input.size(); i++)
+    {
+        if (input[i] == delim)
+        {
+            result.push_back(input.substr(last, i - last));
+            last = i + 1;
+        }
+    }
+
+    result.push_back(input.substr(last)); // last token
+    return result;
+}
+
+int ParseArguments(std::shared_ptr<Linker> linker, int argc, char *argv[])
+{
+    int i = 0;
+    States currentState = READ_NEXT;
+    std::vector<std::string> args(argv + 1, argv + argc);
+
+    while (currentState != States::FINISH)
+    {
+        switch (currentState)
+        {
+            case READ_NEXT:
+            {
+                if (i >= (int)args.size())
+                {
+                    currentState = States::ERROR;
+                    break;
+                }
+
+                if (args[i] == "-o")
+                {
+                    currentState = States::SET_OUTPUT;
+                    i++;
+                    continue;
+                }
+
+                if (StartsWith(args[i], "-place"))
+                {
+                    currentState = States::SET_PLACE;
+                    continue;
+                }
+
+                if (args[i] == "-hex")
+                {
+                    currentState = States::SET_HEX;
+                    continue;
+                }
+
+                if (args[i] == "-relocatable")
+                {
+                    currentState = States::SET_RELOC;
+                    continue;
+                }
+
+                if (EndsWith(args[i], ".o"))
+                {
+                    currentState = States::SET_INPUT;
+                    continue;
+                }
+
+                currentState = States::ERROR;
+                break;
+
+                //error
+            }
+            case SET_HEX:
+            {
+                linker->SetMode(Modes::HEX);
+                currentState = States::READ_NEXT;
+                i++;
+                break;
+            }
+            case SET_RELOC:
+            {
+                linker->SetMode(Modes::RELOC);
+                currentState = States::READ_NEXT;
+                i++;
+                break;
+            }
+            case SET_PLACE:
+            {
+                std::vector<std::string> parts = Split(args[i], '=');
+                std::vector<std::string> place = Split(parts[1], '@');
+                linker->SetPlace(place[0], place[1]);
+                currentState = States::READ_NEXT;
+                i++;
+                break;
+            }
+            case SET_OUTPUT:
+            {
+                linker->SetOutput(args[i]);
+                currentState = States::READ_NEXT;
+                i++;
+                break;
+            }
+            case SET_INPUT:
+            {
+                if (i == args.size())
+                {
+                    currentState = States::FINISH;
+                    break;
+                }
+                linker->SetInput(args[i]);
+                currentState = States::SET_INPUT;
+                i++;
+                break;
+            }
+            default:
+                return 1;
+        }
+    }
+
+    return 0;
+}

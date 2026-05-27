@@ -7,11 +7,17 @@ all: flex bison asm
 
 
 ASM_DIR = ./inc/assembly/
+LNK_DIR = ./inc/linker/
 EMU_DIR = ./inc/emulator/
 
 asm: flex bison
 	@echo "Building assembly..."
 	@$(MAKE) -s asm -C $(ASM_DIR)
+	@echo ${SUCCESS}
+
+lnk:
+	@echo "Building assembly..."
+	@$(MAKE) -s lnk -C $(LNK_DIR)
 	@echo ${SUCCESS}
 
 emu:
@@ -22,7 +28,7 @@ emu:
 FLEX_DIR = ./misc/
 BISON_DIR = ./misc/
 
-flex: 
+flex:
 	@echo "Building flex..."
 	@$(MAKE) -s flex -C $(FLEX_DIR)
 	@echo ${SUCCESS}

@@ -10,7 +10,9 @@
                 "${workspaceFolder}/misc/scanner",
                 "${workspaceFolder}/inc/instruction",
                 "${workspaceFolder}/inc/util",
-                "${workspaceFolder}/inc/emulator"
+                "${workspaceFolder}/inc/emulator",
+                "${workspaceFolder}/inc/linker",
+                "${workspaceFolder}/inc/elf"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/g++",
