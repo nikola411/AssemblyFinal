@@ -563,10 +563,8 @@ eValueSize Conversion::GetOperandValueSize(const AssemblyLine::s_ptr& instructio
         return eValueSize::SIZE_NONE;
     }
 
-    return op.asmValue > 0x7FF ? eValueSize::SIZE_BIG : eValueSize::SIZE_SMALL;
+    return op.isBigValue ? eValueSize::SIZE_BIG : eValueSize::SIZE_SMALL;
 }
-
-
 
 AssemblyLineMetadata Conversion::GetProcessorInstructions(const AssemblyLine::s_ptr& instruction)
 {

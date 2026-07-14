@@ -1,6 +1,9 @@
 #ifndef LINKER_HPP
 #define LINKER_HPP
 
+#include "Elf.hpp"
+#include "Helpers.hpp"
+
 #include <vector>
 #include <string>
 #include <map>
@@ -31,6 +34,15 @@ private:
     std::map<std::string, uint32_t> sectionPositions;
 
     // varijable vezane za rad linkera
+
+    std::vector<Elf> rawFiles;
+    std::vector<AbstractFile> absFiles;
+
+    // izlazni fajl
+
+    SymbolTable outSymt;
+    SectionTable outSect;
+    RelocationTable outRelt;
 };
 
 #endif

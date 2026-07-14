@@ -2,33 +2,7 @@
 
 #include "Linker.hpp"
 
-bool StartsWith(const std::string& input, const std::string& c1)
-{
-    return input.substr(0, c1.size()) == c1;
-}
-
-bool EndsWith(const std::string& in, const std::string& c1)
-{
-    if (c1.size() > in.size()) return false;
-    return in.substr(in.size() - c1.size(), in.size()) == c1;
-}
-
-std::vector<std::string> Split(const std::string& input, char delim)
-{
-    std::vector<std::string> result = {};
-    int last = 0;
-    for (int i = 0; i < input.size(); i++)
-    {
-        if (input[i] == delim)
-        {
-            result.push_back(input.substr(last, i - last));
-            last = i + 1;
-        }
-    }
-
-    result.push_back(input.substr(last)); // last token
-    return result;
-}
+#include <fstream>
 
 int ParseArguments(std::shared_ptr<Linker> linker, int argc, char *argv[])
 {
@@ -132,4 +106,30 @@ int ParseArguments(std::shared_ptr<Linker> linker, int argc, char *argv[])
     }
 
     return 0;
+}
+
+/* citamo binarni fajl koji ce da ima sledeci format:
+hhhhhhhh hh hh hh hh hh hh hh hh  hh hh hh hh hh hh hh hh
+gde je h neka heksadecimalna cifra koja predstavlja 4bita
+*/
+std::vector<uint8_t> ReadBinaryFile(const std::string &path)
+{
+    std::vector<uint8_t> output = {};
+    std::ifstream file(path);
+    if (!file.is_open())
+        return output;
+
+    std::string line;
+    while (std::getline(file, line))
+    {
+        auto parts = Split(line, ' ');
+        for (int i = 1; i < (int)parts.size(); i++)
+        {
+            if (parts[i].empty())
+                continue;
+            output.push_back(std::stoi(parts[i], nullptr, 16));
+        }
+    }
+
+    return output;
 }

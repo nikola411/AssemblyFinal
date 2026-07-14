@@ -4,8 +4,11 @@
 #include "ElfDataTypes.hpp"
 
 #include "Utility.hpp"
+#include "Symbol.hpp"
+#include "Section.hpp"
 
 #include <inttypes.h>
+#include <cstring>
 #include <vector>
 #include <string>
 
@@ -15,64 +18,41 @@ public:
     Elf(){};
     ~Elf(){};
 
-    void Load(Elf64_EType type, const SymbolTable& symTable, const SectionTable& sections, const RelocationTable& relocations);
+    void LoadLinkable(const SymbolTable& symTable, const SectionTable& sections);
+    void LoadBinary(const std::vector<uint8_t>& content);
+    void UnloadLinkable(SymbolTable& symTable, SectionTable& sections);
 
-    // osnovne metode za objekte najviseg nivoa slozenosti
+    void LoadSymbolTable(std::vector<Elf64_Shdr>& shdrt, std::vector<uint8_t>& shstrt);
+    void LoadSectionData(std::vector<Elf64_Shdr> &shdrt, int startOffset, int shstrtOffset);
+
+    // specialized
     Elf64_Ehdr GetElfHeader() const;
+    std::vector<Elf64_Phdr> GetProgramHeaderTable() const;
+    std::vector<Elf64_Shdr> GetSectionHeaderTable() const;
+    std::vector<Elf64_Sym> GetSymbolTable() const;
+    std::string GetSymbolName(const Elf64_Sym& sym) const;
+    int GetElfSize() const;
+
     bool SetElfHeader(Elf64_Ehdr ehdr);
-
-    std::vector<Elf64_Phdr> GetProgramTableHeader() const;
     bool SetProgramHeaderTable(const std::vector<Elf64_Phdr>& phdr);
-
-    std::vector<Elf64_Shdr> GetSectionTableHeader() const;
     bool SetSectionHeaderTable(const std::vector<Elf64_Shdr>& shdr);
 
-    std::vector<uint8_t> GetSectionContent(Elf64_Shdr shdr) const;
+    // generic
+    std::vector<uint8_t> GetSectionContent(int shdrtOffset) const;
 
-    // kraj osnovnih metoda
+    bool UpdateSectionContent(int shdrtOffset, const std::vector<uint8_t>& content);
 
-    // specijalne metode
-
-    // std::vector<Elf64_Sym> ReadSymbolTable() const;
-    // std::vector<Elf64_
-    // std::vector<Elf64_Rela> ReadRelocationsTable() const;
-
-    void WriteToFile(std::string filePath);
     void HexDump();
 
+
 private:
+    // raw file content
     std::vector<uint8_t> content;
 
-    Elf64_Ehdr InitEhdr();
-
-    template<typename T>
-    std::vector<T> ReadTable(Elf64_Off offset, Elf64_Half count) const
-    {
-        std::vector<T> result(count);
-        std::memcpy(result.data(), content.data() + offset, count * sizeof(T));
-        return result;
-    }
-
-    template<typename T>
-    void WriteTable(Elf64_Off offset, const std::vector<T>& table)
-    {
-        std::memcpy(content.data() + offset, table.data(), table.size() * sizeof(T));
-    }
-
-    template<typename T>
-    T ReadObject(Elf64_Off offset) const
-    {
-        T result;
-        std::memcpy(&result, content.data() + offset, sizeof(T));
-
-        return result;
-    }
-
-    template<typename T>
-    void WriteObject(Elf64_Off offset, const T& object)
-    {
-        std::memcpy(content.data() + offset, &object, sizeof(T));
-    }
+    // sadrzaj fajla na najvisem nivou apstrakcije
+    SymbolTable symTable;
+    SectionTable sections;
+    RelocationTable relocations;
 };
 
 #endif

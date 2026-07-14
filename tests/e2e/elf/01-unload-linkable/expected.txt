@@ -1,0 +1,31 @@
+=== Symbol Table ===
+
+               Name         Section  Offset Defined  Extern  Global   Value Big
+  1                         .symtab       0       0       0       0       0   0
+  2          helper           .text       4       1       0       0       4   0
+  3       local_var           .data       4       1       0       0       4   1
+  4       const_val         .rodata       0       1       0       0       0   0
+  5            main           .text       0       1       0       1       0   1
+  6      global_var           .data       0       1       0       1       0   1
+
+=== Section Table ===
+.text 0
+00 01 02 03 
+04 05 06 07 
+.text.pool 
+
+.data 0
+10 11 12 13 
+14 15 16 17 
+.data.pool 
+
+.rodata 0
+aa bb cc dd 
+.rodata.pool 
+
+=== Relocation Table ===
+Relocations 
+.text            main               0       2
+.text          helper               4       1
+.data      global_var               0       2
+.data       const_val               4       1

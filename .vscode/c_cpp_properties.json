@@ -12,7 +12,8 @@
                 "${workspaceFolder}/inc/util",
                 "${workspaceFolder}/inc/emulator",
                 "${workspaceFolder}/inc/linker",
-                "${workspaceFolder}/inc/elf"
+                "${workspaceFolder}/inc/elf",
+                "${workspaceFolder}/inc/data_types"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/g++",

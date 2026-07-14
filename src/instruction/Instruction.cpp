@@ -38,7 +38,6 @@ void Instruction::SetCode(uint16_t value)
 
 void Instruction::SetModifier(uint16_t value)
 {
-
     data &= ~(0xF << InstructionOffsets::Modifier);
     data |= (value & 0xF) << InstructionOffsets::Modifier;
 }

@@ -20,6 +20,12 @@ SUITE_EXECUTABLES = {
     "asm":      RUNNER_DIR.parent / "asembler",
     "linker":   RUNNER_DIR.parent / "linker",
     "emulator": RUNNER_DIR.parent / "emulator",
+    "elf":      RUNNER_DIR / "e2e" / "elf" / "elf_runner",
+}
+
+# Map suite name -> input file name (default: test.asm)
+SUITE_INPUT_FILES = {
+    "elf": "test.elf",
 }
 
 
@@ -42,12 +48,12 @@ def get_tests(suite):
     return tests
 
 
-def run_single_test(executable, test_dir):
-    asm_file      = test_dir / "test.asm"
+def run_single_test(executable, test_dir, input_filename="test.asm"):
+    asm_file      = test_dir / input_filename
     expected_file = test_dir / "expected.txt"
 
     if not asm_file.exists():
-        return "skip", "missing test.asm", None
+        return "skip", f"missing {input_filename}", None
 
     if not expected_file.exists():
         return "skip", "missing expected.txt  (run --update to generate)", None
@@ -107,9 +113,10 @@ def run_tests(filter_suite=None):
 
         passed = failed = errors = skipped = 0
 
+        input_filename = SUITE_INPUT_FILES.get(suite, "test.asm")
         for test_dir in tests:
             name = test_dir.name
-            status, detail, diff = run_single_test(executable, test_dir)
+            status, detail, diff = run_single_test(executable, test_dir, input_filename)
 
             if status == "pass":
                 print(f"  {GREEN}[PASS]{RESET}  {name}")
@@ -164,8 +171,9 @@ def update_expected(filter_suite=None):
             print(f"  {YELLOW}[SKIP]{RESET}  executable not found")
             continue
 
+        input_filename = SUITE_INPUT_FILES.get(suite, "test.asm")
         for test_dir in tests:
-            asm_file      = test_dir / "test.asm"
+            asm_file      = test_dir / input_filename
             expected_file = test_dir / "expected.txt"
 
             if not asm_file.exists():

@@ -1,16 +1,14 @@
 #include "Utility.hpp"
 
+#include "ParserTypes.hpp"
+#include "Symbol.hpp"
+#include "Section.hpp"
+#include "Relocation.hpp"
+
 #include <iomanip>
 #include <string>
 
-Symbol::s_ptr GetSymbol(const SymbolTable& table, const std::string& label)
-{
-    for (const auto& entry : table)
-        if (entry->name == label)
-            return entry;
 
-    return nullptr;
-}
 
 std::string SymbolTableToString(const SymbolTable& table)
 {
@@ -68,40 +66,82 @@ std::string SectionTableToString(const SectionTable& table)
             }
         }
 
-        stream << section->name << ".constants \n";
-        eol = 0;
-        for (int i = 0; i < section->literalPool.size(); ++i)
+        if (!section->literalPool.empty())
         {
-            stream << std::hex << std::setw(2) << std::setfill('0') << (uint16_t)section->literalPool[i] << " ";
-            if (++eol == 4)
+            stream << section->name << ".pool \n";
+            eol = 0;
+            for (int i = 0; i < section->literalPool.size(); ++i)
             {
-                eol = 0;
-                stream << "\n";
+                stream << std::hex << std::setw(2) << std::setfill('0') << (uint16_t)section->literalPool[i] << " ";
+                if (++eol == 4)
+                {
+                    eol = 0;
+                    stream << "\n";
+                }
             }
+
+            stream << "\n";
         }
 
-        stream << "\n";
+        if (!section->sectionRelocations.empty())
+        {
+            stream << section->name << ".rel\n";
+            stream << RelocationTableToString(section->sectionRelocations);
+        }
+
+        if (!section->poolRelocations.empty())
+        {
+            stream << section->name << ".pool.rel\n";
+            stream << RelocationTableToString(section->poolRelocations);
+        }
+
     }
 
     return stream.str();
+}
+
+static const char* RelocationTypeName(eRelocationType t)
+{
+    switch (t)
+    {
+        case eRelocationType::REL12_PC: return "REL12_PC";
+        case eRelocationType::REL12_ABS: return "REL12_ABS";
+        case eRelocationType::REL32_ABS: return "REL32_ABS";
+        default:                            return "UNKNOWN";
+    }
 }
 
 std::string RelocationTableToString(const RelocationTable& table)
 {
+    if (table.empty())
+        return "\n";
+
     std::stringstream stream;
-    stream << "Relocations \n";
-    for (const auto& relocation : table)
+    stream << "\n";
+    stream << std::setfill(' ')
+           << std::setw(18) << "Section"
+           << std::setw(18) << "Symbol"
+           << std::setw(10) << "Offset"
+           << std::setw(16) << "Type"
+           << std::setw(10) << "Addend"
+           << "\n";
+    stream << std::string(72, '-') << "\n";
+
+    for (const auto& r : table)
     {
         stream << std::setfill(' ')
-             << relocation->sectionName<<std::setw(16)
-             << relocation->symbolName<<std::setw(16)
-            << relocation->offset<<std::setw(8)
-            << relocation->type <<std::setw(1) << "\n";
+               << std::setw(18) << r->symbolName
+               << std::setw(10) << std::dec << r->offset
+               << std::setw(16) << RelocationTypeName(r->type)
+               << std::setw(10) << r->addend
+               << "\n";
     }
+    stream << "\n";
 
     return stream.str();
 }
 
+// enum helpers
 eGPR GPRStringToEnum(std::string reg)
 {
     // covnert sp and pc to r14 and r15 repsectively
@@ -123,6 +163,7 @@ eCSR CSRStringToEnum(std::string csr)
     return eCSR::STATUS;
 }
 
+// int helpers
 std::vector<uint8_t> IntToByteArray(const uint32_t& value)
 {
     auto result = std::vector<uint8_t>();
@@ -142,6 +183,7 @@ std::vector<uint8_t> ShortToByteArray(const uint16_t& value)
     return std::vector<uint8_t>();
 }
 
+// string helpers
 uint32_t LiteralStringToInt(const std::string& value)
 {
     int base = 10;
@@ -163,71 +205,31 @@ bool Compare(const std::vector<uint8_t>& first, const std::vector<uint8_t>& seco
     return true;
 }
 
-void Section::AppendData(const std::vector<BYTE>& inData)
+bool StartsWith(const std::string& input, const std::string& c1)
 {
-    data.insert(data.end(), inData.begin(), inData.end());
-    locationCounter += inData.size();
+    return input.substr(0, c1.size()) == c1;
 }
 
-// this function will throw an exception only if there is not enough place to write the given data to the section
-// basically this is just a wrapper for std::vector::insert
-void Section::WriteData(const uint32_t& offset, const std::vector<BYTE>& inData)
+bool EndsWith(const std::string& in, const std::string& c1)
 {
-    if (data.size() < offset + inData.size())
+    if (c1.size() > in.size()) return false;
+    return in.substr(in.size() - c1.size(), in.size()) == c1;
+}
+
+std::vector<std::string> Split(const std::string& input, char delim)
+{
+    std::vector<std::string> result = {};
+    int last = 0;
+    for (int i = 0; i < input.size(); i++)
     {
-        throw std::exception();
-    }
-
-    for (auto i = offset; i < inData.size() + offset; ++i)
-        data[i] = inData[i - offset];
-}
-
-void Section::WriteInstructionDisplacement(const uint32_t& offset, const uint16_t& toWrite)
-{
-    if (offset + 1 > data.size())
-        return;
-
-    //data[offset + 1] |=  ((toWrite >> 8) & 0xF) << 4;
-    data[offset] = toWrite & 0xFF;
-    data[offset + 1] |= (toWrite >> 8);
-}
-
-ADDRESS Section::InsertLiteralInPool(uint32_t value)
-{
-    auto bytes = IntToByteArray(value);
-    literalPool.insert(literalPool.end(), bytes.begin(), bytes.end());
-
-    return literalPool.size() - bytes.size();
-}
-
-uint32_t Section::AddressToPoolEntry(ADDRESS address)
-{
-    return address / 4;
-}
-
-ADDRESS Section::PoolEntryToAddress(uint32_t entry)
-{
-    return entry * 4;
-}
-
-int64_t Section::IsLiteralPresentInPool(const uint32_t value) const
-{
-    auto bytes = IntToByteArray(value);
-
-    int64_t addressEntry = -1;
-
-    for (unsigned int entryIndex = 0; entryIndex < literalPool.size(); entryIndex += 4)
-    {
-        if (literalPool[entryIndex] == bytes.front())
+        if (input[i] == delim)
         {
-            bool isSame = Compare(
-                std::vector<uint8_t>(literalPool.begin() + entryIndex, literalPool.begin() + entryIndex + 4),
-                bytes);
-
-            if (isSame)
-                return entryIndex;
+            result.push_back(input.substr(last, i - last));
+            last = i + 1;
         }
     }
 
-    return addressEntry;
+    result.push_back(input.substr(last)); // last token
+    return result;
 }
+

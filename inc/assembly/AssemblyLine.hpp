@@ -3,6 +3,10 @@
 
 #include "Instruction.hpp"
 #include "ErrorHandling.hpp"
+#include "ParserTypes.hpp"
+
+#include <vector>
+#include <memory>
 
 struct AssemblyLine
 {

@@ -1,0 +1,110 @@
+Kako dodati novu instrukciju
+============================
+
+Potrebno je izmeniti 4 fajla, redom:
+
+
+1. inc/util/DataTypes.hpp  —  registracija identifikatora
+---------------------------------------------------------
+Dodaj novi enumerator u eAssemblyIdentifier:
+
+    enum eAssemblyIdentifier {
+        ...
+        MOV,   // <-- dodaj ovde, u odgovarajucu grupu
+    };
+
+Grupe su naznacene komentarima (branch, processor, stack, data, memory, special).
+Svrstaj instrukciju u odgovarajucu grupu radi preglednosti.
+
+
+2. misc/scanner.l  —  prepoznavanje kljucne reci
+------------------------------------------------
+Dodaj pravilo kojim lekser prepoznaje tekst instrukcije:
+
+    mov  return yy::parser::make_MOV(loc);
+
+Redosled pravila u .l fajlu je bitan samo ako postoji prefiks konflik
+(npr. "ret" i "reti"). Inace, poredaj alfabetski unutar grupe.
+
+
+3. misc/parser.yy  —  gramaticko pravilo
+----------------------------------------
+a) Deklaris token na vrhu fajla:
+
+    %token MOV;
+
+b) Dodaj pravilo u odgovarajuci blok gramatike. Primer za
+   instrukciju bez operanada (kao HALT):
+
+    | MOV { assembly.SetInstruction(eAssemblyIdentifier::MOV, eAssemblyIdentifierType::PROCESSOR); }
+
+   Za instrukciju sa jednim GPR argumentom — dodaj identifikator
+   u NT_DataInstructionIdentifier (blok DATA):
+
+    | MOV  { $$ = eAssemblyIdentifier::MOV; }
+
+   Svaki blok gramatike vec ima definisanu strukturu operanada
+   (npr. NT_DataInstruction ocekuje listu GPR registara).
+   Ako nova instrukcija ima drugaciji obrazac operanada, potrebno
+   je dodati novi non-terminal i odgovarajuce pravilo.
+
+Tipovi identifikatora (drugi argument SetInstruction):
+   PROCESSOR  — nema operanada (halt, int, iret, ret)
+   BRANCH     — skok (jmp, call, beq, bne, bgt)
+   STACK      — push/pop
+   DATA       — aritmetika i logika sa registrima
+   MEMORY     — ld/st
+   SPECIAL    — csrrd/csrwr
+
+
+4. src/instruction/InstructionMapping.cpp  —  binarno kodiranje
+---------------------------------------------------------------
+Dodaj unos u PopulateInstructionsMap() (ili PopulateSpecial() ako
+instrukcija ima vise nacina adresiranja, kao ld/st).
+
+Primer za instrukciju bez operanada:
+
+    NONE_Instruction(MOV, SingleProcessorInstruction(
+        0xXX000000,   // masinski kod: OC i MOD u gornja dva nibla
+        NO_MANIPULATION
+    ));
+
+Primer za instrukciju sa dva GPR registra:
+
+    GPR_Instruction(MOV, SingleProcessorInstruction(
+        0xXX000000,
+        {
+            ManipulationEntry(FIRST_OPERAND,  &Instruction::SetRegisterA),
+            ManipulationEntry(SECOND_OPERAND, &Instruction::SetRegisterB)
+        }
+    ));
+
+Pomocne funkcije:
+   NONE_Instruction  — bez operanada
+   GPR_Instruction   — direktno adresiranje, GPR operandi
+   CSR_Instruction   — direktno adresiranje, CSR operand
+   VALUE_Instruction — vrednost/simbol, specificni tip adresiranja i velicina
+   InstructionEntry  — kompleksna instrukcija, rucno se navode sve kombinacije
+                        adresiranja (koristi AddressingEntry/PayloadTypeEntry/SizeEntry)
+
+Manipulacija operandima (ManipulationEntry):
+   FIRST_OPERAND / SECOND_OPERAND / THIRD_OPERAND — vrednost i-tog operanda
+   FIRST_OFFSET / SECOND_OFFSET / THIRD_OFFSET    — offset i-tog operanda (npr. [reg+offset])
+   POOL_ENTRY | FIRST_OPERAND                     — vrednost se stavlja u bazen literala,
+                                                    a displacement = offset u bazenu
+
+Polja instrukcije koja se mogu podesiti:
+   SetCode / SetModifier                       — gornja dva nibla (OC i MOD)
+   SetRegisterA / SetRegisterB / SetRegisterC  — registarski operandi
+   SetDisplacement                             — 12-bitno pomeranje
+
+
+Napomena o Instruction.def
+--------------------------
+Fajl inc/instruction/Instruction.def je dokumentacioni fajl.
+Nije ukljucen u kompajliranje. Opisuje sintaksu instrukcija u obliku:
+
+    [naziv](TIP_OP1, TIP_OP2, ...)
+
+gde su tipovi: NONE, GPR1, GPR2, OPERAND, CSR.
+Azuriraj ga zajedno sa ostalim promenama radi preglednosti.

@@ -46,21 +46,6 @@ enum Elf64_EMachine : Elf64_Half {
     EM_RISCV  = 243,
 };
 
-// Indeksi u e_ident nizu na pocetku ELF headera.
-// e_ident sadrzi informacije nezavisne od arhitekture (magic, class, endianness, ABI).
-enum Elf64_IdentIndex : uint8_t {
-    EI_MAG0       = 0,
-    EI_MAG1       = 1,
-    EI_MAG2       = 2,
-    EI_MAG3       = 3,
-    EI_CLASS      = 4,
-    EI_DATA       = 5,
-    EI_VERSION    = 6,
-    EI_OSABI      = 7,
-    EI_ABIVERSION = 8,
-    EI_PAD        = 9,
-};
-
 // Vrednosti za e_ident[EI_CLASS]: oznacava da li je ELF 32-bit ili 64-bit.
 enum Elf64_Class : uint8_t {
     ELFCLASS32 = 1,
@@ -131,16 +116,16 @@ enum Elf64_SHN : Elf64_Half {
 // Unos u Section Header Table - opisuje jednu sekciju unutar ELF datoteke.
 // Lokacija tabele: e_shoff, broj unosa: e_shnum, velicina unosa: e_shentsize.
 typedef struct {
-    Elf64_Word  sh_name;
-    Elf64_Word  sh_type;
-    Elf64_Xword sh_flags;
-    Elf64_Addr  sh_addr;
-    Elf64_Off   sh_offset;
-    Elf64_Xword sh_size;
-    Elf64_Word  sh_link;
-    Elf64_Word  sh_info;
-    Elf64_Xword sh_addralign;
-    Elf64_Xword sh_entsize;
+    Elf64_Word  sh_name;      // indeks imena sekcije u string tabeli sekcija
+    Elf64_Word  sh_type;      // tip sekcije (SHT_*)
+    Elf64_Xword sh_flags;     // atributi sekcije (SHF_*)
+    Elf64_Addr  sh_addr;      // adresa sekcije u memoriji, ako je učitana
+    Elf64_Off   sh_offset;    // offset sekcije u fajlu
+    Elf64_Xword sh_size;      // veličina sekcije u bajtovima
+    Elf64_Word  sh_link;      // dodatni indeks u zavisnosti od tipa sekcije
+    Elf64_Word  sh_info;      // dodatne informacije u zavisnosti od tipa sekcije
+    Elf64_Xword sh_addralign; // potreban alignment sekcije
+    Elf64_Xword sh_entsize;   // veličina jednog elementa ako je tabela
 } Elf64_Shdr;
 
 // Binding simbola - gornja 4 bita st_info polja.
@@ -173,12 +158,12 @@ enum Elf64_Sym_Visibility : uint8_t {
 // Mapira ime simbola na adresu ili vrednost. Linker koristi ovu tabelu
 // za razresavanje medjufajlovskih referenci.
 typedef struct {
-    Elf64_Word    st_name;
-    unsigned char st_info;
-    unsigned char st_other;
-    Elf64_Half    st_shndx;
-    Elf64_Addr    st_value;
-    Elf64_Xword   st_size;
+    Elf64_Word    st_name;   // offset imena simbola u .strtab string tabeli (0 = nema ime)
+    unsigned char st_info;   // gornja 4 bita = binding (STB_LOCAL/GLOBAL/WEAK), donja 4 = tip (STT_NOTYPE/OBJECT/FUNC/SECTION)
+    unsigned char st_other;  // vidljivost simbola u donja 2 bita (STV_DEFAULT/HIDDEN/PROTECTED), ostalo rezervisano
+    Elf64_Half    st_shndx;  // indeks sekcije u kojoj je simbol definisan; SHN_UNDEF = nedefinisan, SHN_ABS = apsolutna vrednost
+    Elf64_Addr    st_value;  // vrednost simbola: adresa u izvrsnom fajlu, offset unutar sekcije u objektnom fajlu
+    Elf64_Xword   st_size;   // velicina simbola u bajtovima (npr. velicina funkcije ili promenljive), 0 ako nije poznata
 } Elf64_Sym;
 
 #define ELF64_ST_BIND(val)       (((unsigned char)(val)) >> 4)
@@ -189,20 +174,28 @@ typedef struct {
 // Svaki tip odredjuje formulu kojom linker izracunava patch vrednost
 // (S = vrednost simbola, A = addend, P = adresa koja se zakrpljuje).
 enum Elf64_Rela_Type_x86_64 : uint32_t {
-    R_X86_64_64    =  1,
-    R_X86_64_PC32  =  2,
-    R_X86_64_PLT32 =  4,
-    R_X86_64_32    = 10,
-    R_X86_64_32S   = 11,
+    R_X86_64_64    =  1,  // S + A          ; apsolutna 64-bitna adresa simbola, upisuje se u 8 bajta
+    R_X86_64_PC32  =  2,  // S + A - P      ; PC-relativni 32-bitni offset, koristi se za direktne pozive/skokove
+    R_X86_64_PLT32 =  4,  // L + A - P      ; PC-relativni offset do PLT unosa simbola, za pozive dinamickih funkcija
+    R_X86_64_32    = 10,  // S + A (zero-extend) ; apsolutna 32-bitna adresa, zero-extend na 64 bita, upisuje se u 4 bajta
+    R_X86_64_32S   = 11,  // S + A (sign-extend) ; apsolutna 32-bitna adresa, sign-extend na 64 bita, upisuje se u 4 bajta
 };
 
 // Relokacioni zapis sa eksplicitnim addend poljem (sekcije tipa SHT_RELA).
 // Linker cita ove zapise i zakrpljuje masinski kod na poziciji r_offset.
 typedef struct {
-    Elf64_Addr   r_offset;
-    Elf64_Xword  r_info;
-    Elf64_Sxword r_addend;
+    Elf64_Addr   r_offset;  // offset u sekciji gde linker treba da upisuje patch (byte offset od pocetka sekcije)
+    Elf64_Xword  r_info;    // upakovan: gornja 32 bita = indeks simbola u .symtab, donja 32 bita = tip relokacije (R_*)
+    Elf64_Sxword r_addend;  // vrednost koja se dodaje na adresu simbola pri izracunavanju patch vrednosti (moze biti negativna)
 } Elf64_Rela;
+
+// Tipovi relokacija za custom 32-bit arhitekturu ovog projekta.
+// Vrednosti se direktno upisuju u donja 32 bita r_info polja Elf64_Rela zapisa.
+enum Elf64_Rela_Type_custom : uint32_t {
+    R_CUSTOM_ABS12 = 1,  // S + A (sign-extend); mala vrednost simbola upisuje se direktno u 12-bitni displacement polje instrukcije
+    R_CUSTOM_PC12  = 2,  // pool(S) + A - P; PC-relativni 12-bitni offset do unosa u bazenu literala (.pool sekcija)
+    R_CUSTOM_ABS32 = 3,  // S + A; velika vrednost simbola koja se upisuje u 32 bita u memoriji (pool)
+};
 
 // Relokacioni zapis bez eksplicitnog addend polja (sekcije tipa SHT_REL).
 // Addend se uzima direktno iz masinskog koda na poziciji r_offset.

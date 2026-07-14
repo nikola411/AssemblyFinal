@@ -74,8 +74,8 @@ void AssemblyAdapter::GenerateOutput(const std::string& output) const
     auto sectionsString = SectionTableToString(assembly.mSectionTable);
     out.write(sectionsString.c_str(), sectionsString.size());
 
-    auto relocationsString = RelocationTableToString(assembly.mRelocationTable);
-    out.write(relocationsString.c_str(), relocationsString.size());
+    // auto relocationsString = RelocationTableToString(assembly.mRelocationTable);
+    // out.write(relocationsString.c_str(), relocationsString.size());
 
     out.close();
 }

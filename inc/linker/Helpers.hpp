@@ -1,6 +1,9 @@
 #ifndef HELPERS_HPP
 #define HELPERS_HPP
 
+#include "Symbol.hpp"
+#include "Section.hpp"
+
 #include <string>
 #include <vector>
 #include <memory>
@@ -23,9 +26,13 @@ enum Modes
     RELOC = 2
 };
 
-bool StartsWith(const std::string& input, const std::string& c1);
-bool EndsWith(const std::string& in, const std::string& c1);
-std::vector<std::string> Split(const std::string& input, char delim);
+struct AbstractFile
+{
+    SymbolTable symTable;
+    SectionTable sections;
+    RelocationTable relocations;
+};
+
 
 class Linker;
 int ParseArguments(std::shared_ptr<Linker> linker, int argc, char* argv[]);
@@ -68,6 +75,8 @@ namespace ErrorHandling
         std::string message;
     };
 }
+
+
 
 
 #endif

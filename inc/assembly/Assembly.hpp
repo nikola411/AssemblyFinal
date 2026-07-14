@@ -4,6 +4,8 @@
 #include "Utility.hpp"
 #include "AssemblyLine.hpp"
 #include "ErrorHandling.hpp"
+#include "Symbol.hpp"
+#include "Section.hpp"
 
 #include <vector>
 #include <memory>
@@ -30,13 +32,10 @@ public:
 
     virtual void WriteInstructionToSection(const AssemblyLine::s_ptr& instruction);
 
-    virtual void GenerateRelocation(const eRelocationType& type, const std::string& name = "");
-    virtual void GenerateRelocation(const eRelocationType& type, const std::string& name, const int& offset, const std::string& section);
-
     virtual void GenerateForwardReference(const std::string& name);
 
-    virtual uint16_t GetSymbolValue(const ParserOperand& operand);
-    virtual uint16_t GetLiteralValue(const ParserOperand& operand);
+    virtual uint16_t GetSymbolValue(ParserOperand& operand);
+    virtual uint16_t GetLiteralValue(ParserOperand& operand);
     void inline IncrementLocationCounter(uint32_t amount);
 
     AssemblyLine::s_ptr mCurrentInstruction;
@@ -44,7 +43,6 @@ public:
 
     SectionTable mSectionTable;
     SymbolTable mSymbolTable;
-    RelocationTable mRelocationTable;
     ForwardRefferenceTable mForwardRefTable;
 
     std::vector<AssemblyLine::s_ptr> mProgram;

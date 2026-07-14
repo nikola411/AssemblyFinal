@@ -1,5 +1,4 @@
 #include "Assembly.hpp"
-#include "DataTypes.hpp"
 #include "Utility.hpp"
 #include "InstructionMapping.hpp"
 
@@ -46,7 +45,12 @@ void Assembly::ContinueParsing()
                 // ukoliko je simbol nadjen u drugoj sekciji, moramo da generisemo relokaciju
                 if (entry->section != section->name)
                 {
-                    GenerateRelocation(eRelocationType::REL32_DIRECT, entry->name, fref->offset, section->name);
+                    // upisujemo placeholder vrednost u bazen literala, gde cemo upisati realnu vrednost u vreme linkovanja
+                    auto poolEntry = section->InsertLiteralInPool(0);
+                    int16_t poolAddress = section->locationCounter + poolEntry;
+
+                    section->AddSectionRelocation(eRelocationType::REL12_PC, entry->name, fref->offset);
+                    section->AddPoolRelocation(eRelocationType::REL32_ABS, entry->name, poolAddress);
                     break;
                 }
 
@@ -68,6 +72,11 @@ void Assembly::ContinueParsing()
                 int16_t displacement = (section->locationCounter + poolEntry) - fref->offset - 4;
                 CHECK_SMALL_VALUE(displacement);
                 section->WriteInstructionDisplacement(fref->offset, displacement & 0xFFF);
+
+                // generisemo relokaciju na offsetu gde je generisana fref, jer cemo morati da upisemo novi offset
+                // kada se sekcije spoje u linking fazi
+                section->AddSectionRelocation(eRelocationType::REL12_PC, entry->name, fref->offset);
+
                 break;
             }
         }
@@ -77,7 +86,7 @@ void Assembly::ContinueParsing()
 
     std::cout << SymbolTableToString(mSymbolTable);
     std::cout << SectionTableToString(mSectionTable);
-    std::cout << RelocationTableToString(mRelocationTable);
+    //std::cout << RelocationTableToString(mRelocationTable);
 }
 
 void Assembly::PrintProgram(std::string outFile)
@@ -123,28 +132,30 @@ void Assembly::HandleLabel()
         entry->isGlobal = false;
     }
 
+    auto poolName = mCurrentSection->name + ".pool";
+    if (!GetSymbol(mSymbolTable, poolName))
+    {
+        auto poolEntry = std::make_shared<Symbol>();
+        poolEntry->name = poolName;
+        poolEntry->section = poolName;
+        poolEntry->defined = true;
+        poolEntry->offset = 0;
+        mSymbolTable.push_back(poolEntry);
+    }
+
     entry->name = value;
     entry->section = mCurrentSection->name;
     entry->offset = mCurrentSection->locationCounter;
     entry->defined = true;
 
-    // labela ima vrednost svoje adrese - ako je vrednost mala, pisemo je direktno u sekciju
-    // ako vrednost nije mala, onda pisemo u bazen literala
-    if (mCurrentSection->locationCounter < 0x7FF)
-    {
-        entry->value = mCurrentSection->locationCounter;
-        entry->isBig = false;
-        return;
-    }
-
     auto address = mCurrentSection->IsLiteralPresentInPool(mCurrentSection->locationCounter);
     if (address == -1)
         address = mCurrentSection->InsertLiteralInPool(mCurrentSection->locationCounter);
 
-    entry->value = Section::AddressToPoolEntry(address);
+    entry->value = address;
     entry->isBig = true;
 
-    GenerateRelocation(eRelocationType::REL32_DIRECT, entry->name);
+    //GenerateRelocation(eRelocationType::REL32_ABS, entry->name, );
 }
 
 void Assembly::HandleDirective()
@@ -204,7 +215,7 @@ void Assembly::HandleDirective()
         }
         case eAssemblyIdentifier::WORD:
         {
-            for (const auto& operand : mCurrentInstruction->operands)
+            for (auto& operand : mCurrentInstruction->operands)
             {
                 uint32_t value;
                 std::vector<BYTE> memoryValue;
@@ -246,7 +257,7 @@ void Assembly::HandleInstruction()
     WriteInstructionToSection(mCurrentInstruction);
 }
 
-uint16_t Assembly::GetSymbolValue(const ParserOperand& operand)
+uint16_t Assembly::GetSymbolValue(ParserOperand& operand)
 {
     std::string name = operand.value;
     uint16_t value = 0;
@@ -261,24 +272,32 @@ uint16_t Assembly::GetSymbolValue(const ParserOperand& operand)
     // za eksterne vrednosti, definisemo rel32_direct relokaciju jer ne znamo velicinu simbola, pa svakako koristimo taj tip relokacije
     if (entry->isExtern)
     {
-        GenerateRelocation(eRelocationType::REL32_DIRECT, name);
+        mCurrentSection->AddPoolRelocation(eRelocationType::REL32_ABS, name, mCurrentSection->literalPool.size());
+        mCurrentSection->InsertLiteralInPool(0);
+        operand.isBigValue = true;
         return value;
     }
     // relokacija izmedju sekcija ili relokacija prilikom nedefinisanosti simbola
     if ((!entry->defined || entry->section != mCurrentSection->name) && !entry->isExtern)
     {
-        GenerateRelocation(eRelocationType::REL32_DIRECT, name);
+        mCurrentSection->AddPoolRelocation(eRelocationType::REL32_ABS, name, mCurrentSection->literalPool.size());
+        mCurrentSection->InsertLiteralInPool(0);
+        operand.isBigValue = true;
         return value;
     }
 
     value = entry->value;
     // ukoliko instrukcija podrzava velike vrednosti (vise od 12 bita), gledamo u bazen literala
-    if (IsBigValueInstruction(mCurrentInstruction->identifier, mCurrentInstruction->addressing, ePayloadType::PAYLOAD_VALUE))
+    if (IsBigValueInstruction(mCurrentInstruction->identifier, mCurrentInstruction->GetAddressingType(), ePayloadType::PAYLOAD_VALUE))
     {
         int address = mCurrentSection->IsLiteralPresentInPool(value);
         if (address == -1)
             address = mCurrentSection->InsertLiteralInPool(value);
 
+        // zbog potencijalnog pomeranja bazena literala
+        mCurrentSection->AddSectionRelocation(eRelocationType::REL12_PC, entry->name, entry->offset);
+
+        operand.isBigValue = true;
         return Section::AddressToPoolEntry(address);
     }
     // instrukcija podrzava samo vrednosti do 12 bita, pa proveravamo da li postoji greska
@@ -286,17 +305,20 @@ uint16_t Assembly::GetSymbolValue(const ParserOperand& operand)
     return value;
 }
 
-uint16_t Assembly::GetLiteralValue(const ParserOperand& operand)
+uint16_t Assembly::GetLiteralValue(ParserOperand& operand)
 {
     std::string literal = operand.value;
     uint32_t value = LiteralStringToInt(literal);
-    if (IsBigValueInstruction(mCurrentInstruction->identifier, mCurrentInstruction->addressing, ePayloadType::PAYLOAD_VALUE))
+    if (IsBigValueInstruction(mCurrentInstruction->identifier, mCurrentInstruction->GetAddressingType(), ePayloadType::PAYLOAD_VALUE))
     {
         int address = mCurrentSection->IsLiteralPresentInPool(value);
         if (address == -1)
             address = mCurrentSection->InsertLiteralInPool(value);
 
-        return Section::AddressToPoolEntry(address);
+        mCurrentSection->AddSectionRelocation(eRelocationType::REL12_PC, mCurrentSection->name, mCurrentSection->locationCounter);
+
+        operand.isBigValue = true;
+        return address - mCurrentSection->locationCounter;
     }
 
     CHECK_SMALL_VALUE(value);
@@ -347,7 +369,7 @@ void Assembly::CalculateOperandOffset(ParserOperand& operand)
         return;
     }
 
-    operand.asmValue = 0;
+    operand.asmOffset = 0;
     auto entry = GetSymbol(mSymbolTable, operand.offset);
     if (!entry || (!entry->defined && !entry->isExtern))
     {
@@ -357,11 +379,11 @@ void Assembly::CalculateOperandOffset(ParserOperand& operand)
 
     if (entry->isExtern)
     {
-        GenerateRelocation(eRelocationType::REL12_DIRECT, operand.offset);
+        mCurrentSection->AddSectionRelocation(eRelocationType::REL12_ABS, entry->name, std::stoi(operand.offset));
         return;
     }
 
-    operand.asmValue = entry->value;
+    operand.asmOffset = entry->value;
 }
 
 void Assembly::WriteInstructionToSection(const AssemblyLine::s_ptr& instruction)
@@ -383,27 +405,6 @@ void Assembly::WriteInstructionToSection(const AssemblyLine::s_ptr& instruction)
     }
 }
 
-void Assembly::GenerateRelocation(const eRelocationType& type, const std::string& name)
-{
-    auto relocation = std::make_shared<Relocation>();
-    relocation->type = type;
-    relocation->offset = mCurrentSection->locationCounter;
-    relocation->sectionName = mCurrentSection->name;
-    relocation->symbolName = name;
-
-    mRelocationTable.push_back(relocation);
-}
-
-void Assembly::GenerateRelocation(const eRelocationType& type, const std::string& name, const int& offset, const std::string& section)
-{
-    auto relocation = std::make_shared<Relocation>();
-    relocation->type = type;
-    relocation->offset = offset;
-    relocation->sectionName = section;
-    relocation->symbolName = name;
-
-    mRelocationTable.push_back(relocation);
-}
 
 void Assembly::GenerateForwardReference(const std::string& name)
 {

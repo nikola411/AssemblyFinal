@@ -48,7 +48,7 @@
     #include <vector>
     #include <string>
 
-    #include "DataTypes.hpp"
+    #include "ParserTypes.hpp"
     #include "Utility.hpp"
     #include "Driver.hpp"
 
