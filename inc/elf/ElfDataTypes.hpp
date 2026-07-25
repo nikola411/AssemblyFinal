@@ -86,15 +86,17 @@ typedef struct {
 // Tip sekcije. Cuva se u sh_type polju Section Header Table unosa.
 // Govori linkeru kako da interpretira sadrzaj sekcije.
 enum Elf64_Shdr_Type : Elf64_Word {
-    SHT_NULL     = 0,
-    SHT_PROGBITS = 1,
-    SHT_SYMTAB   = 2,
-    SHT_STRTAB   = 3,
-    SHT_RELA     = 4,
-    SHT_DYNAMIC  = 6,
-    SHT_NOBITS   = 8,
-    SHT_REL      = 9,
-    SHT_DYNSYM   = 11,
+    SHT_NULL         = 0,
+    SHT_PROGBITS     = 1,
+    SHT_SYMTAB       = 2,
+    SHT_STRTAB       = 3,
+    SHT_RELA         = 4,
+    SHT_DYNAMIC      = 6,
+    SHT_NOBITS       = 8,
+    SHT_REL          = 9,
+    SHT_DYNSYM       = 11,
+    SHT_LITPOOL      = 12,
+    SHT_LITPOOL_RELA = 13,
 };
 
 // Atributi sekcije. Cuva se u sh_flags polju; vrednosti se kombinuju bitski (OR).

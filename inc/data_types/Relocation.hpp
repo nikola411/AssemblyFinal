@@ -24,6 +24,11 @@ using RelocationTable = std::vector<Relocation::s_ptr>;
 
 std::string RelocationTableToString(const RelocationTable& table);
 
+enum ForwardRefferenceType
+{
+    FREF32_ABS = 1,
+    FREF12_PC = 2,
+};
 struct ForwardRefference
 {
     std::string symbolName;
@@ -31,6 +36,7 @@ struct ForwardRefference
     uint32_t offset;
     std::shared_ptr<AssemblyLine> instruction;
     uint32_t addend;
+    ForwardRefferenceType type;
 
     typedef std::shared_ptr<ForwardRefference> s_ptr;
 };

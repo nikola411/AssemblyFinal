@@ -1,12 +1,26 @@
 
-               Name         Section  Offset Defined  Extern  Global   Value Big
+               Name         Section  Offset Defined  Extern  Global   ValueConstant
   1            text            text       0       1       0       0       0   0
-  2          target            text       8       1       0       0       8   0
+  2          target            text       8       1       0       0       0   0
+  3       text.pool       text.pool       0       1       0       0       0   0
 
 text 12
-08 40 03 31 
+08 00 f0 39 
 00 00 00 00 
 00 00 00 00 
-text.constants 
+text.pool 
+08 00 00 00 
 
-Relocations 
+text.rel
+
+            Symbol    Offset            Type    Addend
+------------------------------------------------------
+            target         0        REL12_PC         0
+
+text.pool.rel
+
+            Symbol    Offset            Type    Addend
+------------------------------------------------------
+            target         4       REL32_ABS         0
+            target         0       REL32_ABS         0
+

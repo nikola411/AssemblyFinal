@@ -39,7 +39,7 @@ namespace Conversion
         POOL_ENTRY = 0x1 << 7
     };
 
-    #define MANIPULATION_PAIR(operand, method) { ValueToUseMasks::operand, &Instruction::method } 
+    #define MANIPULATION_PAIR(operand, method) { ValueToUseMasks::operand, &Instruction::method }
     #define NO_MANIPULATION {}
 
     using ValueToUseMasks = int;
@@ -48,25 +48,17 @@ namespace Conversion
     using ProcessorInstructionMetadata = std::pair<Instruction, std::vector<ManipulationPair>>;
 
     using AssemblyLineMetadata = std::vector<ProcessorInstructionMetadata>;
-    using InstructionKey = std::tuple<eAssemblyIdentifier, eAddressingType, ePayloadType, eValueSize>;
+    using InstructionKey = std::tuple<eAssemblyIdentifier, eAddressingType, ePayloadType>;
     using InstructionMap = std::map<InstructionKey, AssemblyLineMetadata>;
 
     using BigValueInstructions = std::set<eAssemblyIdentifier>;
 
-    struct SizeEntry
-    {
-        eValueSize value;
-        std::vector<ProcessorInstructionMetadata> processorInstructions;
-
-        SizeEntry(eValueSize value, std::vector<ProcessorInstructionMetadata> processorInstructions = {}) : value(value), processorInstructions(processorInstructions) {}
-    };
-
     struct PayloadTypeEntry
     {
         ePayloadType type;
-        std::vector<SizeEntry> sizes;
+        std::vector<ProcessorInstructionMetadata> processorInstructions;
 
-        PayloadTypeEntry(ePayloadType type, std::vector<SizeEntry> sizes = {}) : type(type), sizes(sizes) {}
+        PayloadTypeEntry(ePayloadType type, std::vector<ProcessorInstructionMetadata> processorInstructions) : type(type), processorInstructions(processorInstructions) {}
     };
 
     struct AddressingEntry
@@ -110,15 +102,11 @@ namespace Conversion
     static void PopulateSpecial();
 
     // public functions of this interface
-
-    eValueSize GetOperandValueSize(const AssemblyLine::s_ptr& instruction);
-
     void PopulateInstructionsMap();
     AssemblyLineMetadata GetProcessorInstructions(const AssemblyLine::s_ptr& instruction);
     ePayloadType OperandTypeToPayloadType(eOperandType type);
     uint16_t GetOperandValue(const AssemblyLine::s_ptr& instruction, ValueToUseMasks enumerator);
 
-    bool IsBigValueInstruction(const eAssemblyIdentifier& instruction, const eAddressingType& addressing, const ePayloadType& payloadType);
 }
 
 

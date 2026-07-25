@@ -23,7 +23,7 @@ std::string SymbolTableToString(const SymbolTable& table)
         << std::setw(8) << std::setfill(' ') << "Extern"
         << std::setw(8) << std::setfill(' ') << "Global"
         << std::setw(8) << std::setfill(' ') << "Value"
-        << std::setw(4) << std::setfill(' ') << "Big"
+        << std::setw(4) << std::setfill(' ') << "Constant"
         << "\n";
 
     for (const auto& symbol : table)
@@ -37,7 +37,7 @@ std::string SymbolTableToString(const SymbolTable& table)
             << std::setw(8) << std::setfill(' ') << symbol->isExtern
             << std::setw(8) << std::setfill(' ') << symbol->isGlobal
             << std::setw(8) << std::setfill(' ') << symbol->value
-            << std::setw(4) << std::setfill(' ') << symbol->isBig
+            << std::setw(4) << std::setfill(' ') << symbol->isConstant
             << "\n";
     }
     stream << "\n";
@@ -119,13 +119,12 @@ std::string RelocationTableToString(const RelocationTable& table)
     std::stringstream stream;
     stream << "\n";
     stream << std::setfill(' ')
-           << std::setw(18) << "Section"
            << std::setw(18) << "Symbol"
            << std::setw(10) << "Offset"
            << std::setw(16) << "Type"
            << std::setw(10) << "Addend"
            << "\n";
-    stream << std::string(72, '-') << "\n";
+    stream << std::string(54, '-') << "\n";
 
     for (const auto& r : table)
     {

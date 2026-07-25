@@ -1,11 +1,18 @@
 
-               Name         Section  Offset Defined  Extern  Global   Value Big
+               Name         Section  Offset Defined  Extern  Global   ValueConstant
   1         my_func            text       0       1       0       1       0   0
   2        ext_func    .GLOBAL_DATA       0       0       1       0       0   0
   3            text            text       0       1       0       0       0   0
+  4       text.pool       text.pool       0       1       0       0       0   0
 
 text 4
 00 00 00 00 
-text.constants 
+text.pool 
+00 00 00 00 
 
-Relocations 
+text.pool.rel
+
+            Symbol    Offset            Type    Addend
+------------------------------------------------------
+           my_func         4       REL32_ABS         0
+

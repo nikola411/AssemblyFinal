@@ -1,4 +1,5 @@
 #include "AssemblyAdapter.hpp"
+#include <stack>
 
 void AssemblyAdapter::SetInstruction(eAssemblyIdentifier instruction, eAssemblyIdentifierType type)
 {
@@ -42,9 +43,25 @@ void AssemblyAdapter::FinishInstruction()
             assembly.HandleDirective();
             break;
         }
-        default:
+        case eAssemblyIdentifierType::BRANCH:
+        {
+            assembly.HandleBranchInstruction();
+            break;
+        }
+        case eAssemblyIdentifierType::DATA:
+        {
+            assembly.HandleDataInstruction();
+            break;
+        }
+        case eAssemblyIdentifierType::NONE:
+        case eAssemblyIdentifierType::REGISTER:
         {
             assembly.HandleInstruction();
+            break;
+        }
+        default:
+        {
+            throw std::exception();
             break;
         }
     }

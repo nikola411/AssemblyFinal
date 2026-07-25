@@ -29,90 +29,6 @@ Assembly::Assembly() :
     //m_symbolAndLiteralPool = {};
 }
 
-void Assembly::ContinueParsing()
-{
-    for (ForwardRefference::s_ptr& fref : mForwardRefTable)
-    {
-        std::string symbolName = fref->symbolName;
-        auto entry = GetSymbol(mSymbolTable, symbolName);
-        if (!entry)
-            throw AssemblyException(ExceptionMessage::UndefinedSymbol, { symbolName });
-
-        for (auto& section : mSectionTable)
-        {
-            if (section->name == fref->sectionName)
-            {
-                // ukoliko je simbol nadjen u drugoj sekciji, moramo da generisemo relokaciju
-                if (entry->section != section->name)
-                {
-                    // upisujemo placeholder vrednost u bazen literala, gde cemo upisati realnu vrednost u vreme linkovanja
-                    auto poolEntry = section->InsertLiteralInPool(0);
-                    int16_t poolAddress = section->locationCounter + poolEntry;
-
-                    section->AddSectionRelocation(eRelocationType::REL12_PC, entry->name, fref->offset);
-                    section->AddPoolRelocation(eRelocationType::REL32_ABS, entry->name, poolAddress);
-                    break;
-                }
-
-                eValueSize operandSize = GetOperandValueSize(fref->instruction);
-                // vrednost operanda je mala - mozemo je zameniti u mestu
-                if (operandSize == eValueSize::SIZE_SMALL)
-                {
-                    int16_t displacement = entry->offset;
-                    CHECK_SMALL_VALUE(displacement);
-                    section->WriteInstructionDisplacement(fref->offset, displacement & 0xFFF);
-                    break;
-                }
-
-                // vrednost operanda je velika, moramo da generisemo relokaciju i da nadjemo ulaz u bazenu literala
-                auto poolEntry = section->IsLiteralPresentInPool(entry->offset);
-                if (poolEntry == -1)
-                    poolEntry = section->InsertLiteralInPool(entry->offset);
-
-                int16_t displacement = (section->locationCounter + poolEntry) - fref->offset - 4;
-                CHECK_SMALL_VALUE(displacement);
-                section->WriteInstructionDisplacement(fref->offset, displacement & 0xFFF);
-
-                // generisemo relokaciju na offsetu gde je generisana fref, jer cemo morati da upisemo novi offset
-                // kada se sekcije spoje u linking fazi
-                section->AddSectionRelocation(eRelocationType::REL12_PC, entry->name, fref->offset);
-
-                break;
-            }
-        }
-    }
-
-    CheckForErrors();
-
-    std::cout << SymbolTableToString(mSymbolTable);
-    std::cout << SectionTableToString(mSectionTable);
-    //std::cout << RelocationTableToString(mRelocationTable);
-}
-
-void Assembly::PrintProgram(std::string outFile)
-{
-    std::fstream file;
-    file.open(outFile, std::ios_base::openmode::_S_out);
-
-    file << SymbolTableToString(mSymbolTable);
-    // file << SectionsToString(mSectionTable);
-    // file << RelocationTableToString(mRelocationTable);
-
-    file.close();
-}
-
-void Assembly::CheckForErrors() const
-{
-    for (const auto& symbol : mSymbolTable)
-    {
-        if (!symbol->defined && symbol->isGlobal)
-            throw AssemblyException(ExceptionMessage::ExportingUndefinedSymbol, { symbol->name });
-
-        if (symbol->defined && symbol->isExtern)
-            throw AssemblyException(ExceptionMessage::ImportingDefinedSymbol, { symbol->name });
-    }
-}
-
 void Assembly::HandleLabel()
 {
     // ucitaj labelu i skini :
@@ -148,14 +64,13 @@ void Assembly::HandleLabel()
     entry->offset = mCurrentSection->locationCounter;
     entry->defined = true;
 
-    auto address = mCurrentSection->IsLiteralPresentInPool(mCurrentSection->locationCounter);
-    if (address == -1)
-        address = mCurrentSection->InsertLiteralInPool(mCurrentSection->locationCounter);
+    auto poolIndex = mCurrentSection->IsLiteralPresentInPool(mCurrentSection->locationCounter);
+    if (poolIndex == -1)
+        poolIndex = mCurrentSection->InsertLiteralInPool(mCurrentSection->locationCounter);
 
-    entry->value = address;
-    entry->isBig = true;
-
-    //GenerateRelocation(eRelocationType::REL32_ABS, entry->name, );
+    entry->value = poolIndex;
+    // treba nam relokacija jer u vreme linkovanja, sama adresa labele je nepoznata
+    mCurrentSection->AddPoolRelocation(eRelocationType::REL32_ABS, entry->name, mCurrentSection->literalPool.size());
 }
 
 void Assembly::HandleDirective()
@@ -229,7 +144,9 @@ void Assembly::HandleDirective()
                     continue;
                 }
 
-                value = GetSymbolValue(operand);
+                auto symbol = GetSymbol(mSymbolTable, operand.value);
+                value = GetAbsoluteSymbolValue(symbol);
+
                 memoryValue = IntToByteArray(value);
                 mCurrentSection->AppendData(memoryValue);
             }
@@ -242,6 +159,21 @@ void Assembly::HandleDirective()
             mCurrentSection->AppendData(std::vector<uint8_t>(bytesToAllocate, 0));
             break;
         }
+        case eAssemblyIdentifier::EQU:
+        {
+            auto operands = mCurrentInstruction->operands;
+            auto entry = GetSymbol(mSymbolTable, operands.front().value);
+            if (entry)
+            {
+                throw std::exception();
+            }
+
+            entry = std::make_shared<Symbol>();
+            entry->name = operands.front().value;
+            entry->value = std::stoi(operands.back().value, nullptr, 16);
+            entry->isConstant = true;
+            mSymbolTable.push_back(entry);
+        }
         case eAssemblyIdentifier::END:
         {
             mEnd = true;
@@ -253,89 +185,130 @@ void Assembly::HandleDirective()
 
 void Assembly::HandleInstruction()
 {
-    DecodeInstructionValues();
+    for (auto& operand : mCurrentInstruction->operands)
+    {
+        operand.asmValue = operand.type == eOperandType::GPR
+            ? GPRStringToEnum(operand.value)
+            : CSRStringToEnum(operand.value);
+    }
+
     WriteInstructionToSection(mCurrentInstruction);
 }
 
-uint16_t Assembly::GetSymbolValue(ParserOperand& operand)
-{
-    std::string name = operand.value;
-    uint16_t value = 0;
-    auto entry = GetSymbol(mSymbolTable, name);
-
-    // ako nismo nasisli na definiciju simbola, generisemo fref
-    if (!entry)
-    {
-        GenerateForwardReference(name);
-        return 0;
-    }
-    // za eksterne vrednosti, definisemo rel32_direct relokaciju jer ne znamo velicinu simbola, pa svakako koristimo taj tip relokacije
-    if (entry->isExtern)
-    {
-        mCurrentSection->AddPoolRelocation(eRelocationType::REL32_ABS, name, mCurrentSection->literalPool.size());
-        mCurrentSection->InsertLiteralInPool(0);
-        operand.isBigValue = true;
-        return value;
-    }
-    // relokacija izmedju sekcija ili relokacija prilikom nedefinisanosti simbola
-    if ((!entry->defined || entry->section != mCurrentSection->name) && !entry->isExtern)
-    {
-        mCurrentSection->AddPoolRelocation(eRelocationType::REL32_ABS, name, mCurrentSection->literalPool.size());
-        mCurrentSection->InsertLiteralInPool(0);
-        operand.isBigValue = true;
-        return value;
-    }
-
-    value = entry->value;
-    // ukoliko instrukcija podrzava velike vrednosti (vise od 12 bita), gledamo u bazen literala
-    if (IsBigValueInstruction(mCurrentInstruction->identifier, mCurrentInstruction->GetAddressingType(), ePayloadType::PAYLOAD_VALUE))
-    {
-        int address = mCurrentSection->IsLiteralPresentInPool(value);
-        if (address == -1)
-            address = mCurrentSection->InsertLiteralInPool(value);
-
-        // zbog potencijalnog pomeranja bazena literala
-        mCurrentSection->AddSectionRelocation(eRelocationType::REL12_PC, entry->name, entry->offset);
-
-        operand.isBigValue = true;
-        return Section::AddressToPoolEntry(address);
-    }
-    // instrukcija podrzava samo vrednosti do 12 bita, pa proveravamo da li postoji greska
-    CHECK_SMALL_VALUE(value);
-    return value;
-}
-
-uint16_t Assembly::GetLiteralValue(ParserOperand& operand)
-{
-    std::string literal = operand.value;
-    uint32_t value = LiteralStringToInt(literal);
-    if (IsBigValueInstruction(mCurrentInstruction->identifier, mCurrentInstruction->GetAddressingType(), ePayloadType::PAYLOAD_VALUE))
-    {
-        int address = mCurrentSection->IsLiteralPresentInPool(value);
-        if (address == -1)
-            address = mCurrentSection->InsertLiteralInPool(value);
-
-        mCurrentSection->AddSectionRelocation(eRelocationType::REL12_PC, mCurrentSection->name, mCurrentSection->locationCounter);
-
-        operand.isBigValue = true;
-        return address - mCurrentSection->locationCounter;
-    }
-
-    CHECK_SMALL_VALUE(value);
-    return value;
-}
-
-void Assembly::DecodeInstructionValues()
+void Assembly::HandleDataInstruction()
 {
     for (auto& operand : mCurrentInstruction->operands)
     {
         if (!operand.offset.empty())
         {
-            CalculateOperandOffset(operand);
+            CalculateDataOperandOffset(operand);
         }
 
         CalculateOperandValue(operand);
     }
+
+    WriteInstructionToSection(mCurrentInstruction);
+}
+
+void Assembly::HandleBranchInstruction()
+{
+    auto variableOperand = mCurrentInstruction->operands.back();
+    CalculateOperandValue(variableOperand);
+
+    WriteInstructionToSection(mCurrentInstruction);
+}
+
+uint32_t Assembly::GetSymbolValue(const std::string& name)
+{
+    uint32_t value = 0;
+    auto entry = GetSymbol(mSymbolTable, name);
+
+    if (!entry || !entry->defined)
+    {
+        GenerateForwardReference(name, ForwardRefferenceType::FREF12_PC);
+        return value;
+    }
+
+    if (entry->isConstant)
+        return GetConstantSymbolValue(entry);
+
+    return GetSymbolPoolEntry(entry);
+}
+
+uint16_t Assembly::GetSymbolPoolEntry(const Symbol::s_ptr &entry)
+{
+    uint32_t value = 0;
+
+    // za eksterne vrednosti, definisemo rel32_direct relokaciju jer ne znamo velicinu simbola, pa svakako koristimo taj tip relokacije
+    if (entry->isExtern)
+    {
+        mCurrentSection->AddPoolRelocation(eRelocationType::REL32_ABS, entry->name, mCurrentSection->literalPool.size());
+        value = mCurrentSection->InsertLiteralInPool(0);
+
+        return value;
+    }
+    // relokacija izmedju sekcija ili relokacija prilikom nedefinisanosti simbola
+    if ((!entry->defined || entry->section != mCurrentSection->name) && !entry->isExtern)
+    {
+        mCurrentSection->AddPoolRelocation(eRelocationType::REL32_ABS, entry->name, mCurrentSection->literalPool.size());
+        value = mCurrentSection->InsertLiteralInPool(0);
+
+        return value;
+    }
+
+    return entry->value;
+}
+
+// za .word direktivu, trazimo apsolutnu vrednost simbola
+//
+uint32_t Assembly::GetAbsoluteSymbolValue(const Symbol::s_ptr& entry)
+{
+    uint32_t value = 0;
+
+    if (!entry || !entry->defined)
+    {
+        GenerateForwardReference(entry->name, ForwardRefferenceType::FREF32_ABS);
+        return value;
+    }
+
+    // word direktiva moze da referencira konstante
+    if (entry->isConstant)
+        return entry->value;
+
+    // generisemo relokaciju svakako, jer sama vrednost simbola se menja prilikom linkovanja. ovo ne vredi za konstante
+    mCurrentSection->AddSectionRelocation(eRelocationType::REL32_ABS, entry->name, mCurrentSection->locationCounter);
+    return value;
+}
+
+uint32_t Assembly::GetConstantSymbolValue(const Symbol::s_ptr& entry)
+{
+    uint32_t value = 0;
+
+    if (!entry || !entry->defined)
+    {
+        throw AssemblyException(ExceptionMessage::UndefinedSymbol, { entry->name });
+    }
+
+    if (!entry->isConstant)
+    {
+        throw AssemblyException(ExceptionMessage::SymbolNotConstant, { entry->name });
+    }
+
+    return entry->value;
+}
+
+uint16_t Assembly::GetLiteralValue(ParserOperand &operand)
+{
+    std::string literal = operand.value;
+    uint32_t value = LiteralStringToInt(literal);
+
+    int poolEntry = mCurrentSection->IsLiteralPresentInPool(value);
+    if (poolEntry == -1)
+        poolEntry = mCurrentSection->InsertLiteralInPool(value);
+
+    //mCurrentSection->AddSectionRelocation(eRelocationType::REL12_PC, literal, mCurrentSection->locationCounter);
+
+    return Section::AddressToPoolEntry(poolEntry);
 }
 
 void Assembly::CalculateOperandValue(ParserOperand& operand)
@@ -354,10 +327,10 @@ void Assembly::CalculateOperandValue(ParserOperand& operand)
         return;
     }
 
-    operand.asmValue = GetSymbolValue(operand);
+    operand.asmValue = GetSymbolValue(operand.value);
 }
 
-void Assembly::CalculateOperandOffset(ParserOperand& operand)
+void Assembly::CalculateDataOperandOffset(ParserOperand& operand)
 {
     // ovde kazemo da je operand type literal, i podrzavamo samo vrednosti do 12 bita
     if (operand.offsetType == eOperandType::LTR)
@@ -371,19 +344,20 @@ void Assembly::CalculateOperandOffset(ParserOperand& operand)
 
     operand.asmOffset = 0;
     auto entry = GetSymbol(mSymbolTable, operand.offset);
-    if (!entry || (!entry->defined && !entry->isExtern))
+    if (!entry || (!entry->defined && !entry->isExtern) || entry->isExtern)
     {
-        GenerateForwardReference(operand.offset);
-        return;
+        throw new AssemblyException(ExceptionMessage::UndefinedSymbol);
     }
 
-    if (entry->isExtern)
+    if (entry->isConstant)
     {
-        mCurrentSection->AddSectionRelocation(eRelocationType::REL12_ABS, entry->name, std::stoi(operand.offset));
-        return;
+        CHECK_SMALL_VALUE(entry->value);
+        operand.asmOffset = entry->value;
     }
-
-    operand.asmOffset = entry->value;
+    else
+    {
+        throw AssemblyException(ExceptionMessage::SymbolValueTooBig, { entry->name });
+    }
 }
 
 void Assembly::WriteInstructionToSection(const AssemblyLine::s_ptr& instruction)
@@ -405,14 +379,14 @@ void Assembly::WriteInstructionToSection(const AssemblyLine::s_ptr& instruction)
     }
 }
 
-
-void Assembly::GenerateForwardReference(const std::string& name)
+void Assembly::GenerateForwardReference(const std::string& name, const ForwardRefferenceType& type)
 {
     auto fref = std::make_shared<ForwardRefference>();
     fref->offset = mCurrentSection->locationCounter;
     fref->sectionName = mCurrentSection->name;
     fref->symbolName = name;
     fref->instruction = mCurrentInstruction;
+    fref->type = type;
 
     mForwardRefTable.push_back(fref);
 }
@@ -420,4 +394,85 @@ void Assembly::GenerateForwardReference(const std::string& name)
 inline void Assembly::IncrementLocationCounter(uint32_t amount)
 {
     mCurrentSection->locationCounter += amount;
+}
+
+void Assembly::ContinueParsing()
+{
+    for (ForwardRefference::s_ptr& fref : mForwardRefTable)
+    {
+        std::string symbolName = fref->symbolName;
+        auto entry = GetSymbol(mSymbolTable, symbolName);
+        if (!entry)
+            throw AssemblyException(ExceptionMessage::UndefinedSymbol, { symbolName });
+
+
+        // dodaj find_if umesto for loop-a, citljivije
+        for (auto& section : mSectionTable)
+        {
+            if (section->name != fref->sectionName)
+                continue;
+
+            // ukoliko je simbol nadjen u drugoj sekciji, moramo da generisemo relokaciju
+            if (entry->section != section->name)
+            {
+                auto poolEntry = section->InsertLiteralInPool(0);
+                int16_t poolAddress = Section::PoolEntryToAddress(poolEntry);
+
+                //section->AddSectionRelocation(eRelocationType::REL12_PC, entry->name, fref->offset);
+                section->AddPoolRelocation(eRelocationType::REL32_ABS, entry->name, poolAddress);
+                break;
+            }
+
+            // vrednost operanda je velika, moramo da generisemo relokaciju i da nadjemo ulaz u bazenu literala
+            auto poolEntry = section->IsLiteralPresentInPool(entry->offset);
+            if (poolEntry == -1)
+                poolEntry = section->InsertLiteralInPool(entry->offset);
+
+            auto poolAddress = Section::PoolEntryToAddress(poolEntry);
+
+            int16_t displacement = (section->locationCounter + poolAddress) - fref->offset - 4;
+            CHECK_SMALL_VALUE(displacement);
+            section->WriteInstructionDisplacement(fref->offset, displacement & 0xFFF);
+
+            // generisemo relokaciju na offsetu gde je generisana fref, jer cemo morati da upisemo novi offset
+            // kada se sekcije spoje u linking fazi
+            //section->AddSectionRelocation(eRelocationType::REL12_PC, entry->name, fref->offset);
+            section->AddPoolRelocation(eRelocationType::REL32_ABS, entry->name, poolAddress);
+
+            break;
+        }
+    }
+
+    CheckForErrors();
+
+    std::cout << SymbolTableToString(mSymbolTable);
+    std::cout << SectionTableToString(mSectionTable);
+    //std::cout << RelocationTableToString(mRelocationTable);
+}
+
+void Assembly::PrintProgram(std::string outFile)
+{
+    std::fstream file;
+    file.open(outFile, std::ios_base::openmode::_S_out);
+
+    file << SymbolTableToString(mSymbolTable);
+    // file << SectionsToString(mSectionTable);
+    // file << RelocationTableToString(mRelocationTable);
+
+    file.close();
+}
+
+void Assembly::CheckForErrors() const
+{
+    for (const auto& symbol : mSymbolTable)
+    {
+        if (!symbol->defined && symbol->isGlobal)
+            throw AssemblyException(ExceptionMessage::ExportingUndefinedSymbol, { symbol->name });
+
+        if (symbol->defined && symbol->isExtern)
+            throw AssemblyException(ExceptionMessage::ImportingDefinedSymbol, { symbol->name });
+
+        if (symbol->isGlobal && symbol->isExtern)
+            throw AssemblyException(ExceptionMessage::SymbolAlreadyDefined, { symbol->name });
+    }
 }

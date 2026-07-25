@@ -30,7 +30,6 @@ struct AbstractFile
 {
     SymbolTable symTable;
     SectionTable sections;
-    RelocationTable relocations;
 };
 
 

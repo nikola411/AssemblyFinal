@@ -429,6 +429,10 @@ namespace yy {
       // NT_StackInstructionIdentifier
       char dummy3[sizeof (eAssemblyIdentifier)];
 
+      // NT_ArithmeticExpression
+      // NT_MultiplicativeExpression
+      char dummy4[sizeof (int)];
+
       // LABEL
       // SYMBOL
       // LITERAL
@@ -437,12 +441,13 @@ namespace yy {
       // NT_DirectiveWithList
       // NT_DirectiveSingleArgument
       // NT_DirectiveWithSymbolList
-      char dummy4[sizeof (std::string)];
+      // NT_DirectiveWithArithmeticAssignment
+      char dummy5[sizeof (std::string)];
 
       // NT_DataInstructionOperands
       // NT_SymbolList
       // NT_LiteralList
-      char dummy5[sizeof (std::vector<ParserOperand>)];
+      char dummy6[sizeof (std::vector<ParserOperand>)];
     };
 
     /// The size of the largest semantic type.
@@ -539,12 +544,14 @@ namespace yy {
     TOK_L_BRACKET = 44,            // "["
     TOK_L_PAREN = 45,              // "("
     TOK_R_PAREN = 46,              // ")"
-    TOK_PERCENT = 47,              // "%"
-    TOK_PLUS = 48,                 // "+"
-    TOK_MINUS = 49,                // "-"
-    TOK_COMMA = 50,                // ","
-    TOK_COLON = 51,                // ":"
-    TOK_COMMENT = 52               // COMMENT
+    TOK_STAR = 47,                 // "*"
+    TOK_F_SLASH = 48,              // "/"
+    TOK_PERCENT = 49,              // "%"
+    TOK_PLUS = 50,                 // "+"
+    TOK_MINUS = 51,                // "-"
+    TOK_COMMA = 52,                // ","
+    TOK_COLON = 53,                // ":"
+    TOK_COMMENT = 54               // COMMENT
       };
       /// Backward compatibility alias (Bison 3.6).
       typedef token_kind_type yytokentype;
@@ -561,7 +568,7 @@ namespace yy {
     {
       enum symbol_kind_type
       {
-        YYNTOKENS = 53, ///< Number of tokens.
+        YYNTOKENS = 55, ///< Number of tokens.
         S_YYEMPTY = -2,
         S_YYEOF = 0,                             // "end of file"
         S_YYerror = 1,                           // error
@@ -610,37 +617,42 @@ namespace yy {
         S_L_BRACKET = 44,                        // "["
         S_L_PAREN = 45,                          // "("
         S_R_PAREN = 46,                          // ")"
-        S_PERCENT = 47,                          // "%"
-        S_PLUS = 48,                             // "+"
-        S_MINUS = 49,                            // "-"
-        S_COMMA = 50,                            // ","
-        S_COLON = 51,                            // ":"
-        S_COMMENT = 52,                          // COMMENT
-        S_YYACCEPT = 53,                         // $accept
-        S_NT_Program = 54,                       // NT_Program
-        S_NT_Line = 55,                          // NT_Line
-        S_NT_LabelAndComment = 56,               // NT_LabelAndComment
-        S_NT_Directive = 57,                     // NT_Directive
-        S_NT_DirectiveWithList = 58,             // NT_DirectiveWithList
-        S_NT_DirectiveSingleArgument = 59,       // NT_DirectiveSingleArgument
-        S_NT_DirectiveWithSymbolList = 60,       // NT_DirectiveWithSymbolList
-        S_NT_DirectiveIdentifier = 61,           // NT_DirectiveIdentifier
-        S_NT_ProcessorInstruction = 62,          // NT_ProcessorInstruction
-        S_NT_BranchInstruction = 63,             // NT_BranchInstruction
-        S_NT_ConditionalJumpIdentifier = 64,     // NT_ConditionalJumpIdentifier
-        S_NT_ConditionalJumpOperands = 65,       // NT_ConditionalJumpOperands
-        S_NT_UnconditionalJumpIdentifier = 66,   // NT_UnconditionalJumpIdentifier
-        S_NT_DataInstruction = 67,               // NT_DataInstruction
-        S_NT_DataInstructionIdentifier = 68,     // NT_DataInstructionIdentifier
-        S_NT_DataInstructionOperands = 69,       // NT_DataInstructionOperands
-        S_NT_MemoryInstruction = 70,             // NT_MemoryInstruction
-        S_NT_SpecialInstruction = 71,            // NT_SpecialInstruction
-        S_NT_StackInstruction = 72,              // NT_StackInstruction
-        S_NT_StackInstructionIdentifier = 73,    // NT_StackInstructionIdentifier
-        S_NT_SymbolList = 74,                    // NT_SymbolList
-        S_NT_LiteralList = 75,                   // NT_LiteralList
-        S_NT_JumpOperand = 76,                   // NT_JumpOperand
-        S_NT_Operand = 77                        // NT_Operand
+        S_STAR = 47,                             // "*"
+        S_F_SLASH = 48,                          // "/"
+        S_PERCENT = 49,                          // "%"
+        S_PLUS = 50,                             // "+"
+        S_MINUS = 51,                            // "-"
+        S_COMMA = 52,                            // ","
+        S_COLON = 53,                            // ":"
+        S_COMMENT = 54,                          // COMMENT
+        S_YYACCEPT = 55,                         // $accept
+        S_NT_Program = 56,                       // NT_Program
+        S_NT_Line = 57,                          // NT_Line
+        S_NT_LabelAndComment = 58,               // NT_LabelAndComment
+        S_NT_Directive = 59,                     // NT_Directive
+        S_NT_DirectiveWithList = 60,             // NT_DirectiveWithList
+        S_NT_DirectiveSingleArgument = 61,       // NT_DirectiveSingleArgument
+        S_NT_DirectiveWithSymbolList = 62,       // NT_DirectiveWithSymbolList
+        S_NT_DirectiveWithArithmeticAssignment = 63, // NT_DirectiveWithArithmeticAssignment
+        S_NT_DirectiveIdentifier = 64,           // NT_DirectiveIdentifier
+        S_NT_ProcessorInstruction = 65,          // NT_ProcessorInstruction
+        S_NT_BranchInstruction = 66,             // NT_BranchInstruction
+        S_NT_ConditionalJumpIdentifier = 67,     // NT_ConditionalJumpIdentifier
+        S_NT_ConditionalJumpOperands = 68,       // NT_ConditionalJumpOperands
+        S_NT_UnconditionalJumpIdentifier = 69,   // NT_UnconditionalJumpIdentifier
+        S_NT_DataInstruction = 70,               // NT_DataInstruction
+        S_NT_DataInstructionIdentifier = 71,     // NT_DataInstructionIdentifier
+        S_NT_DataInstructionOperands = 72,       // NT_DataInstructionOperands
+        S_NT_MemoryInstruction = 73,             // NT_MemoryInstruction
+        S_NT_SpecialInstruction = 74,            // NT_SpecialInstruction
+        S_NT_StackInstruction = 75,              // NT_StackInstruction
+        S_NT_StackInstructionIdentifier = 76,    // NT_StackInstructionIdentifier
+        S_NT_SymbolList = 77,                    // NT_SymbolList
+        S_NT_LiteralList = 78,                   // NT_LiteralList
+        S_NT_ArithmeticExpression = 79,          // NT_ArithmeticExpression
+        S_NT_MultiplicativeExpression = 80,      // NT_MultiplicativeExpression
+        S_NT_JumpOperand = 81,                   // NT_JumpOperand
+        S_NT_Operand = 82                        // NT_Operand
       };
     };
 
@@ -694,6 +706,11 @@ namespace yy {
         value.move< eAssemblyIdentifier > (std::move (that.value));
         break;
 
+      case symbol_kind::S_NT_ArithmeticExpression: // NT_ArithmeticExpression
+      case symbol_kind::S_NT_MultiplicativeExpression: // NT_MultiplicativeExpression
+        value.move< int > (std::move (that.value));
+        break;
+
       case symbol_kind::S_LABEL: // LABEL
       case symbol_kind::S_SYMBOL: // SYMBOL
       case symbol_kind::S_LITERAL: // LITERAL
@@ -702,6 +719,7 @@ namespace yy {
       case symbol_kind::S_NT_DirectiveWithList: // NT_DirectiveWithList
       case symbol_kind::S_NT_DirectiveSingleArgument: // NT_DirectiveSingleArgument
       case symbol_kind::S_NT_DirectiveWithSymbolList: // NT_DirectiveWithSymbolList
+      case symbol_kind::S_NT_DirectiveWithArithmeticAssignment: // NT_DirectiveWithArithmeticAssignment
         value.move< std::string > (std::move (that.value));
         break;
 
@@ -777,6 +795,20 @@ namespace yy {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, int&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const int& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
       basic_symbol (typename Base::kind_type t, std::string&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
@@ -845,6 +877,11 @@ switch (yykind)
         value.template destroy< eAssemblyIdentifier > ();
         break;
 
+      case symbol_kind::S_NT_ArithmeticExpression: // NT_ArithmeticExpression
+      case symbol_kind::S_NT_MultiplicativeExpression: // NT_MultiplicativeExpression
+        value.template destroy< int > ();
+        break;
+
       case symbol_kind::S_LABEL: // LABEL
       case symbol_kind::S_SYMBOL: // SYMBOL
       case symbol_kind::S_LITERAL: // LITERAL
@@ -853,6 +890,7 @@ switch (yykind)
       case symbol_kind::S_NT_DirectiveWithList: // NT_DirectiveWithList
       case symbol_kind::S_NT_DirectiveSingleArgument: // NT_DirectiveSingleArgument
       case symbol_kind::S_NT_DirectiveWithSymbolList: // NT_DirectiveWithSymbolList
+      case symbol_kind::S_NT_DirectiveWithArithmeticAssignment: // NT_DirectiveWithArithmeticAssignment
         value.template destroy< std::string > ();
         break;
 
@@ -1732,6 +1770,36 @@ switch (yykind)
 #if 201103L <= YY_CPLUSPLUS
       static
       symbol_type
+      make_STAR (location_type l)
+      {
+        return symbol_type (token::TOK_STAR, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_STAR (const location_type& l)
+      {
+        return symbol_type (token::TOK_STAR, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_F_SLASH (location_type l)
+      {
+        return symbol_type (token::TOK_F_SLASH, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_F_SLASH (const location_type& l)
+      {
+        return symbol_type (token::TOK_F_SLASH, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
       make_PERCENT (location_type l)
       {
         return symbol_type (token::TOK_PERCENT, std::move (l));
@@ -1859,7 +1927,7 @@ switch (yykind)
     void yy_lac_discard_ (const char* event);
 
     /// Stored state numbers (used for stacks).
-    typedef signed char state_type;
+    typedef unsigned char state_type;
 
     /// The arguments of the error message.
     int yy_syntax_error_arguments_ (const context& yyctx,
@@ -1915,9 +1983,9 @@ switch (yykind)
     // YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
     // positive, shift that token.  If negative, reduce the rule whose
     // number is the opposite.  If YYTABLE_NINF, syntax error.
-    static const signed char yytable_[];
+    static const unsigned char yytable_[];
 
-    static const signed char yycheck_[];
+    static const short yycheck_[];
 
     // YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
     // state STATE-NUM.
@@ -2168,9 +2236,9 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 132,     ///< Last index in yytable_.
-      yynnts_ = 25,  ///< Number of nonterminal symbols.
-      yyfinal_ = 69 ///< Termination state number.
+      yylast_ = 147,     ///< Last index in yytable_.
+      yynnts_ = 28,  ///< Number of nonterminal symbols.
+      yyfinal_ = 72 ///< Termination state number.
     };
 
 
@@ -2213,6 +2281,11 @@ switch (yykind)
         value.copy< eAssemblyIdentifier > (YY_MOVE (that.value));
         break;
 
+      case symbol_kind::S_NT_ArithmeticExpression: // NT_ArithmeticExpression
+      case symbol_kind::S_NT_MultiplicativeExpression: // NT_MultiplicativeExpression
+        value.copy< int > (YY_MOVE (that.value));
+        break;
+
       case symbol_kind::S_LABEL: // LABEL
       case symbol_kind::S_SYMBOL: // SYMBOL
       case symbol_kind::S_LITERAL: // LITERAL
@@ -2221,6 +2294,7 @@ switch (yykind)
       case symbol_kind::S_NT_DirectiveWithList: // NT_DirectiveWithList
       case symbol_kind::S_NT_DirectiveSingleArgument: // NT_DirectiveSingleArgument
       case symbol_kind::S_NT_DirectiveWithSymbolList: // NT_DirectiveWithSymbolList
+      case symbol_kind::S_NT_DirectiveWithArithmeticAssignment: // NT_DirectiveWithArithmeticAssignment
         value.copy< std::string > (YY_MOVE (that.value));
         break;
 
@@ -2278,6 +2352,11 @@ switch (yykind)
         value.move< eAssemblyIdentifier > (YY_MOVE (s.value));
         break;
 
+      case symbol_kind::S_NT_ArithmeticExpression: // NT_ArithmeticExpression
+      case symbol_kind::S_NT_MultiplicativeExpression: // NT_MultiplicativeExpression
+        value.move< int > (YY_MOVE (s.value));
+        break;
+
       case symbol_kind::S_LABEL: // LABEL
       case symbol_kind::S_SYMBOL: // SYMBOL
       case symbol_kind::S_LITERAL: // LITERAL
@@ -2286,6 +2365,7 @@ switch (yykind)
       case symbol_kind::S_NT_DirectiveWithList: // NT_DirectiveWithList
       case symbol_kind::S_NT_DirectiveSingleArgument: // NT_DirectiveSingleArgument
       case symbol_kind::S_NT_DirectiveWithSymbolList: // NT_DirectiveWithSymbolList
+      case symbol_kind::S_NT_DirectiveWithArithmeticAssignment: // NT_DirectiveWithArithmeticAssignment
         value.move< std::string > (YY_MOVE (s.value));
         break;
 
@@ -2361,7 +2441,7 @@ switch (yykind)
 
 
 } // yy
-#line 2365 "./parser/parser.hpp"
+#line 2445 "./parser/parser.hpp"
 
 
 

@@ -15,6 +15,8 @@ public:
     Linker();
     ~Linker();
 
+    void DoWork();
+
     void SetInput(const std::string& input);
     void SetOutput(const std::string& output);
     void SetPlace(const std::string& sectionName, const std::string& address);
@@ -24,6 +26,7 @@ public:
     void ResolveSymbols();
     void ResolveRelocations();
     void MergeSections();
+    void PlaceSections();
     void CreateOutput();
 
 private:
@@ -40,9 +43,8 @@ private:
 
     // izlazni fajl
 
-    SymbolTable outSymt;
-    SectionTable outSect;
-    RelocationTable outRelt;
+    std::vector<std::pair<Symbol::s_ptr, int>> symt;
+    SectionTable sect;
 };
 
 #endif

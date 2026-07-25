@@ -53,7 +53,7 @@ static std::map<AsmResult, std::string> AsmResultToString =
 
 namespace ExceptionMessage
 {
-    static const std::string UndefinedSymbol = "Symbol {} is unefined.";
+    static const std::string UndefinedSymbol = "Symbol {} is undefined.";
     static const std::string LiteralOffsetTooBig = "Literal {} offset is too big.";
     static const std::string EndNotEncountered = ".end directive was not encountered.";
     static const std::string SymbolAlreadyDefined = "Symbol {} definition was encountered before.";
@@ -62,6 +62,8 @@ namespace ExceptionMessage
     static const std::string ExportingUndefinedSymbol = "Symbol {} is being exported but is not defined.";
     static const std::string ImportingDefinedSymbol = "Symbol {} is defined and being imported.";
     static const std::string OutputFileNotOpen = "Output file {} could not be opened.";
+    static const std::string SymbolNotConstant = "Symbol {} is not a constant.";
+    static const std::string SymbolValueTooBig = "Symbol {} value is too big.";
 }
 
 struct AssemblyErrorMetadata

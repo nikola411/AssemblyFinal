@@ -25,16 +25,21 @@ public:
     void HandleLabel();
     void HandleDirective();
     void HandleInstruction();
+    void HandleDataInstruction();
+    void HandleBranchInstruction();
 // virtual for the sake of testing
-    virtual void DecodeInstructionValues();
     virtual void CalculateOperandValue(ParserOperand& operand);
-    virtual void CalculateOperandOffset(ParserOperand& operand);
+    virtual void CalculateDataOperandOffset(ParserOperand& operand);
 
     virtual void WriteInstructionToSection(const AssemblyLine::s_ptr& instruction);
 
-    virtual void GenerateForwardReference(const std::string& name);
+    virtual void GenerateForwardReference(const std::string& name, const ForwardRefferenceType& type);
 
-    virtual uint16_t GetSymbolValue(ParserOperand& operand);
+    virtual uint32_t GetSymbolValue(const std::string& name);
+    virtual uint16_t GetSymbolPoolEntry(const Symbol::s_ptr& symbol);
+    virtual uint32_t GetAbsoluteSymbolValue(const Symbol::s_ptr& symbol);
+    virtual uint32_t GetConstantSymbolValue(const Symbol::s_ptr& symbol);
+
     virtual uint16_t GetLiteralValue(ParserOperand& operand);
     void inline IncrementLocationCounter(uint32_t amount);
 

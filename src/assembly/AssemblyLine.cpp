@@ -3,16 +3,6 @@
 
 #include <set>
 
-static std::set<eAssemblyIdentifierType> operandInstructions =
-{
-    MEMORY, BRANCH
-};
-
-static std::set<eAssemblyIdentifierType> registerInstructions =
-{
-    PROCESSOR, STACK, DATA, SPECIAL,
-};
-
 eOperandType AssemblyLine::GetOperandType() const
 {
     switch (identifier)

@@ -49,11 +49,14 @@
 
 %type <std::vector<ParserOperand>> NT_SymbolList;
 %type <std::vector<ParserOperand>> NT_LiteralList;
+%type <int> NT_ArithmeticExpression;
+%type <int> NT_MultiplicativeExpression;
 
 %nterm NT_Directive;
 %type <std::string> NT_DirectiveWithSymbolList;
 %type <std::string> NT_DirectiveWithList;
 %type <std::string> NT_DirectiveSingleArgument;
+%type <std::string> NT_DirectiveWithArithmeticAssignment;
 %type <eAssemblyIdentifier> NT_DirectiveIdentifier;
 
 %nterm NT_ProcessorInstruction;
@@ -95,6 +98,7 @@
 
 %token DOLLAR "$" R_BRACKET "]" L_BRACKET "[";
 %token L_PAREN "(" R_PAREN ")";
+%token STAR "*" F_SLASH "/";
 %token PERCENT "%" PLUS "+" MINUS "-";
 %token COMMA "," COLON ":";
 %token COMMENT;
@@ -154,6 +158,7 @@ NT_Directive:
     NT_DirectiveWithSymbolList
     | NT_DirectiveWithList
     | NT_DirectiveSingleArgument
+    | NT_DirectiveWithArithmeticAssignment
     | END
     {
         assembly.SetInstruction(eAssemblyIdentifier::END, eAssemblyIdentifierType::DIRECTIVE);
@@ -196,6 +201,15 @@ NT_DirectiveWithSymbolList:
     }
     ;
 
+NT_DirectiveWithArithmeticAssignment:
+    EQU SYMBOL COMMA NT_ArithmeticExpression
+    {
+        assembly.SetInstruction(eAssemblyIdentifier::EQU, eAssemblyIdentifierType::DIRECTIVE);
+        assembly.SetOperand($2, eOperandType::SYM);
+        assembly.SetOperand(std::to_string($4), eOperandType::LTR);
+    }
+    ;
+
 NT_DirectiveIdentifier:
     GLOBAL { $$ = eAssemblyIdentifier::GLOBAL; }
     | EXTERN { $$ = eAssemblyIdentifier::EXTERN; }
@@ -203,10 +217,10 @@ NT_DirectiveIdentifier:
 //---------------------DIRECTIVES-END----------------
 //---------------------PROCESSOR-INSTR---------------
 NT_ProcessorInstruction:
-    HALT { assembly.SetInstruction(eAssemblyIdentifier::HALT, eAssemblyIdentifierType::PROCESSOR); }
-    | INT { assembly.SetInstruction(eAssemblyIdentifier::INT, eAssemblyIdentifierType::PROCESSOR); }
-    | IRET { assembly.SetInstruction(eAssemblyIdentifier::IRET, eAssemblyIdentifierType::PROCESSOR); }
-    | RET { assembly.SetInstruction(eAssemblyIdentifier::RET, eAssemblyIdentifierType::PROCESSOR); }
+    HALT { assembly.SetInstruction(eAssemblyIdentifier::HALT, eAssemblyIdentifierType::NONE); }
+    | INT { assembly.SetInstruction(eAssemblyIdentifier::INT, eAssemblyIdentifierType::NONE); }
+    | IRET { assembly.SetInstruction(eAssemblyIdentifier::IRET, eAssemblyIdentifierType::NONE); }
+    | RET { assembly.SetInstruction(eAssemblyIdentifier::RET, eAssemblyIdentifierType::NONE); }
     ;
 //---------------------PROCESSOR-END-----------------
 //---------------------BRANCH------------------------
@@ -255,7 +269,7 @@ NT_DataInstruction:
             return 1;
         }
 
-        assembly.SetInstruction($1, eAssemblyIdentifierType::DATA);
+        assembly.SetInstruction($1, eAssemblyIdentifierType::REGISTER);
         assembly.SetMultipleOperands($2);
     }
     ;
@@ -287,13 +301,13 @@ NT_DataInstructionOperands:
 NT_MemoryInstruction:
     LD NT_Operand "," "%" GPR
     {
-        assembly.SetInstruction(eAssemblyIdentifier::LD, eAssemblyIdentifierType::MEMORY);
+        assembly.SetInstruction(eAssemblyIdentifier::LD, eAssemblyIdentifierType::DATA);
         assembly.SetOperand($2);
         assembly.SetOperand($5, eOperandType::GPR);
     }
     | ST "%" GPR "," NT_Operand
     {
-        assembly.SetInstruction(eAssemblyIdentifier::ST, eAssemblyIdentifierType::MEMORY);
+        assembly.SetInstruction(eAssemblyIdentifier::ST, eAssemblyIdentifierType::DATA);
         assembly.SetOperand($3, eOperandType::GPR);
         assembly.SetOperand($5);
     }
@@ -303,13 +317,13 @@ NT_MemoryInstruction:
 NT_SpecialInstruction:
     CSRRD "%" CSR "," "%" GPR
     {
-        assembly.SetInstruction(eAssemblyIdentifier::CSRRD, eAssemblyIdentifierType::SPECIAL);
+        assembly.SetInstruction(eAssemblyIdentifier::CSRRD, eAssemblyIdentifierType::REGISTER);
         assembly.SetOperand($3, eOperandType::CSR);
         assembly.SetOperand($6, eOperandType::GPR);
     }
     | CSRWR "%" GPR "," "%" CSR
     {
-        assembly.SetInstruction(eAssemblyIdentifier::CSRWR, eAssemblyIdentifierType::SPECIAL);
+        assembly.SetInstruction(eAssemblyIdentifier::CSRWR, eAssemblyIdentifierType::REGISTER);
         assembly.SetOperand($3, eOperandType::GPR);
         assembly.SetOperand($6, eOperandType::CSR);
     }
@@ -319,7 +333,7 @@ NT_SpecialInstruction:
 NT_StackInstruction:
     NT_StackInstructionIdentifier "%" GPR
     {
-        assembly.SetInstruction($1, eAssemblyIdentifierType::STACK);
+        assembly.SetInstruction($1, eAssemblyIdentifierType::REGISTER);
         assembly.SetOperand($3, eOperandType::GPR);
     }
     ;
@@ -340,6 +354,66 @@ NT_LiteralList:
     | LITERAL { $$.push_back(ParserOperand($1, eOperandType::LTR)); }
     ;
 
+NT_ArithmeticExpression:
+    NT_MultiplicativeExpression { $$ = $1; }
+    | NT_ArithmeticExpression PLUS NT_MultiplicativeExpression { $$ = $1 + $3; }
+    | NT_ArithmeticExpression MINUS NT_MultiplicativeExpression { $$ = $1 - $3; }
+    ;
+
+NT_MultiplicativeExpression:
+    NT_MultiplicativeExpression STAR LITERAL
+    {
+        try
+        {
+            $$ = $1 * std::stoi($3, nullptr, 16);
+        }
+        catch (std::exception& e)
+        {
+            error(@3, "Invalid integer value.\n");
+            return 1;
+        }
+    }
+    | NT_MultiplicativeExpression F_SLASH LITERAL
+    {
+        try
+        {
+            auto divisor = std::stoi($3, nullptr, 16);
+            if (divisor == 0)
+            {
+                error(@3, "Division by zero.\n");
+                return 1;
+            }
+
+            $$ = $1 / std::stoi($3, nullptr, 16);
+        }
+        catch (std::exception& e)
+        {
+            error(@3, "Invalid integer value.\n");
+            return 1;
+        }
+    }
+    | LITERAL
+    {
+        try
+        {
+            $$ = std::stoi($1, nullptr, 16);
+        }
+        catch (std::exception& e)
+        {
+            error(@1, "Invalid integer value.\n");
+            return 1;
+        }
+    }
+    ;
+
+/* 
+NT_ArithmeticExpression:
+    NT_ArithmeticExpression PLUS LITERAL { $$ = $1 + std::stoi($3, nullptr, 16); }
+    | NT_ArithmeticExpression MINUS LITERAL { $$ = $1 - std::stoi($3, nullptr, 16); }
+    | NT_ArithmeticExpression F_SLASH LITERAL { $$ = $1 / std::stoi($3, nullptr, 16); }
+    | NT_ArithmeticExpression STAR LITERAL { $$ = $1 * std::stoi($3, nullptr, 16); }
+    | LITERAL { $$ = std::stoi($1, nullptr, 16); }
+    ; */
 //---------------------LISTS-END---------------------
 //---------------------OPERANDS----------------------
 NT_JumpOperand:
@@ -357,6 +431,7 @@ NT_Operand:
     | "[" "%" GPR "+" LITERAL "]" { $$.value = $3; $$.offset = $5; $$.offsetType = eOperandType::LTR; $$.type = eOperandType::GPR; $$.addressingType = eAddressingType::ADDR_MEMORY_OFFSET; }
     | "[" "%" GPR "+" SYMBOL "]"  { $$.value = $3; $$.offset = $5; $$.offsetType = eOperandType::SYM; $$.type = eOperandType::GPR; $$.addressingType = eAddressingType::ADDR_MEMORY_OFFSET; }
     ;
+
 //---------------------OPERANDS-END------------------
 
 %%

@@ -5,6 +5,10 @@
 Tvoja uloga je da budes vodic. Kada te pitam da proveris stvari, pitaj me sta tacno zelim - sintaksa, funkcionalnost ili nesto drugo specificno za to sto pitam.
 Izmene pravis samo kada ti kazem da napravis izmene.
 
+Output treba da bude citljiv u malom prozoru - bez previse highlight-ova (bold/code), a ako se koristi highlight, neka bude u zasebnoj liniji.
+
+Koristi jednostavnije recenice koje imaju vise sustine a manje reci - lakse za citanje i manje zamora stvara.
+
 Strucnjak si za pisanje prevodioca. Poznajes elf format koji je definisan u skolski_elf_docs.pdf.
 
 ## Sta je ovaj projekat
@@ -41,7 +45,7 @@ Asembler -> interne strukture -> Elf::Load() -> content[] -> Elf::Save() -> file
 |---|---|
 | `inc/elf/ElfDataTypes.hpp` | ELF64 tipovi, enumovi, strukture (Elf64_Ehdr, Elf64_Shdr, Elf64_Sym, Elf64_Rela, Elf64_Rel, Elf64_Phdr) |
 | `inc/elf/Elf.hpp` | Elf klasa sa template metodama ReadObject/WriteObject/ReadTable/WriteTable |
-| `src/elf/Elf.cpp` | Implementacija - Load, InitEhdr, Get/Set metode, LoadSymbolTable |
+| `src/elf/Elf.cpp` | Implementacija - Load, InitEhdr, Get/Set metode, WriteSymtabSection |
 | `inc/elf/ElfHelpers.hpp` | Pomocne funkcije: GetSectionIndex, MakeSectionHeader |
 | `src/elf/ElfHelpers.cpp` | Implementacija pomocnih funkcija |
 | `inc/linker/Linker.hpp` | Linker klasa |

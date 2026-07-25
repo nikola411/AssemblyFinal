@@ -24,20 +24,26 @@ enum eAssemblyIdentifier
     // memory
     LD, ST,
     // special
-    CSRRD, CSRWR
+    CSRRD, CSRWR,
+    // equ, ascii
+    EQU
 };
 
+/*
+    Podela instrukcija: 
+    DIRECTIVE - asemblerske direktive
+    LABEL - labele
+    OPERAND - sve instrukcije koje koriste operande
+    REGISTER - instrukcije koje koriste samo registre
+*/
 enum eAssemblyIdentifierType
 {
-    DIRECTIVE = 0x00,
-    LABEL = 0x01,
-    BRANCH = 0x02,
-
-    PROCESSOR = 0x03,
-    STACK = 0x04,
-    DATA = 0x05,
-    MEMORY = 0x06,
-    SPECIAL = 0x07,
+    DIRECTIVE = 0x01,
+    LABEL = 0x02,
+    DATA = 0x04,
+    BRANCH = 0x08,
+    REGISTER = 0x10,
+    NONE = 0x20
 };
 
 enum eOperandType

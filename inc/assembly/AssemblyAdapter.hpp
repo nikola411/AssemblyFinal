@@ -11,7 +11,7 @@ public:
     void SetOperand(ParserOperand& operand);
     void SetMultipleOperands(std::vector<ParserOperand> operands);
     void FinishInstruction();
-/// @brief Used for resloving backreferences
+
     void Backpatch();
 
     void GenerateOutput(const std::string& output) const;

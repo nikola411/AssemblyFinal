@@ -32,12 +32,22 @@ void Section::WriteInstructionDisplacement(const uint32_t& offset, const uint16_
     data[offset + 1] |= (toWrite >> 8);
 }
 
+uint32_t Section::ReadPoolEntry(const uint32_t &entry)
+{
+    uint32_t start = PoolEntryToAddress(entry);
+    uint32_t value = 0;
+    for (int i = 0; i < 4; i++)
+        value |= (uint32_t)literalPool[start + i] << (i * 8);
+
+    return value;
+}
+
 ADDRESS Section::InsertLiteralInPool(uint32_t value)
 {
     auto bytes = IntToByteArray(value);
     literalPool.insert(literalPool.end(), bytes.begin(), bytes.end());
 
-    return literalPool.size() - bytes.size();
+    return literalPool.size() / 4 - 1;
 }
 
 uint32_t Section::AddressToPoolEntry(ADDRESS address)
@@ -72,6 +82,44 @@ void Section::AddPoolRelocation(const eRelocationType &type, const std::string &
     poolRelocations.push_back(relocation);
 }
 
+void Section::UpdateSectionRelocationsOffsets(int offset)
+{
+    for (auto rel : sectionRelocations)
+    {
+        rel->offset += offset;
+    }
+}
+
+void Section::UpdatePoolRelocationsOffsets(int offset)
+{
+    for (auto rel : poolRelocations)
+    {
+        rel->offset += offset;
+    }
+}
+
+Section::s_ptr Section::MergeSections(Section::s_ptr &first, Section::s_ptr &second)
+{
+    Section::s_ptr result = std::make_shared<Section>(*first);
+
+    int sectionOffset = first->data.size();
+    result->AppendData(second->data);
+
+    second->UpdateSectionRelocationsOffsets(sectionOffset);
+    result->sectionRelocations.insert(result->sectionRelocations.end(),
+        second->sectionRelocations.begin(), second->sectionRelocations.end());
+
+    int poolOffset = first->literalPool.size();
+    result->literalPool.insert(result->literalPool.end(),
+        second->literalPool.begin(), second->literalPool.end());
+
+    second->UpdatePoolRelocationsOffsets(poolOffset);
+    result->poolRelocations.insert(result->poolRelocations.end(),
+        second->poolRelocations.begin(), second->poolRelocations.end());
+
+    return result;
+}
+
 /// @brief vraca index u bazenu. index je broj uint32_t vrednosti (4 bajta) pre odredjenog literala
 ADDRESS Section::IsLiteralPresentInPool(const uint32_t value) const
 {
@@ -93,4 +141,15 @@ ADDRESS Section::IsLiteralPresentInPool(const uint32_t value) const
     }
 
     return addressEntry;
+}
+
+void Section::WritePoolEntry(const uint32_t &value, const uint32_t &entry)
+{
+    auto bytes = IntToByteArray(value);
+    int start = PoolEntryToAddress(entry);
+
+    for (int i = 0; i < 4; i++)
+    {
+        literalPool[start + i] = bytes[i];
+    }
 }

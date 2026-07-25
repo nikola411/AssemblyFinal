@@ -16,11 +16,11 @@ struct Symbol
     bool defined = false;
     bool isGlobal = false;
     bool isExtern = false;
-    bool isBig = false;
+    bool isConstant = false;
 
     Symbol(){};
-    Symbol(std::string name, std::string section, uint32_t offset, uint16_t value = 0, bool defined = false, bool isGlobal = false, bool isExtern = false, bool isBig = false)
-        : name(name), section(section), offset(offset), value(value), defined(defined), isGlobal(isGlobal), isExtern(isExtern), isBig(isBig) {};
+    Symbol(std::string name, std::string section, uint32_t offset, uint16_t value = 0, bool defined = false, bool isGlobal = false, bool isExtern = false, bool isConstant = false)
+        : name(name), section(section), offset(offset), value(value), defined(defined), isGlobal(isGlobal), isExtern(isExtern), isConstant(isConstant) {};
 
     typedef std::shared_ptr<Symbol> s_ptr;
 };

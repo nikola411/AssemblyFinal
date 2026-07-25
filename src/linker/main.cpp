@@ -12,10 +12,7 @@ int main(int argc, char* argv[])
 
     try
     {
-        linker->ResolveSymbols();
-        linker->ResolveRelocations();
-        linker->MergeSections();
-        linker->CreateOutput();
+        linker->DoWork();
     }
     catch (const std::exception& e)
     {

@@ -1,10 +1,79 @@
 # TODO
 
-## Elf::LoadSectionData (src/elf/Elf.cpp) — bagovi
+Status below is cross-checked against `tests/unit/ElfTest.cpp` (rewritten to
+match the current API — see groups [10]-[14]). Items marked with a test name
+have a red test pinned on them; run `cd tests/unit && make run` to see them.
 
-- [ ] **Linija 272** `SHT_LITPOOL` ne postoji u `Elf64_Shdr_Type` (`ElfDataTypes.hpp:89-97`) — ne kompajlira se, treba dodati custom vrednost za tip sekcije literal pool-a
-- [ ] **Linije 301, 322** `sectionRelocationData`/`poolRelocationData` su `std::vector<uint8_t>`, ali `sectionRelocations`/`poolRelocations` su `RelocationTable` (`std::vector<Relocation::s_ptr>`) — `insert` ne kompajlira se (cannot convert shared_ptr to uint8_t). Nedostaje korak serijalizacije `Relocation` → `Elf64_Rela` pre upisa u bafer
-- [ ] **Linije 295-296, 316-317** `sh_size`/`sh_entsize` za RELA sekcije računati kao `sizeof(Elf64_Rela) * broj_relokacija` / `sizeof(Elf64_Rela)`, ne `sizeof(uint8_t) * ...` (ovo je posledica prethodnog bug-a, ali treba popraviti i posle serijalizacije)
-- [ ] **Linije 298, 319** `sh_link = i + 2` postavlja indeks ciljne sekcije, ali `Elf::UnloadLinkable` (linija 149) čita ciljnu sekciju iz `sh_info`, ne `sh_link`. Standardna ELF konvencija: `sh_link` = indeks symtab-a, `sh_info` = indeks ciljne sekcije za RELA. Treba zameniti mesta i postaviti `sh_link` na pravi symtab indeks
-- [ ] `shstrtOffset` se dosledno uvećava (linije 257, 278, 303, 324) za imena sekcija/pool/rela, ali nigde u funkciji (ni u pozivaocu `LoadLinkable`, koji je i sam nedovršen stub) se stringovi imena stvarno ne upisuju u shstrtab bafer — `sh_name` će pokazivati na offsete gde ništa nije upisano
-- [ ] `i + 2` u `sh_link` računu pretpostavlja da `shdrt` već ima 2 unosa (`.symtab` + `.strtab`) pre sekcija, ali `LoadSymbolTable` ubacuje samo JEDAN shdr (za `.symtab`, linija 181) iako upisuje i symtab i strtab podatke — nema posebnog shdr za `.strtab`. Treba ili dodati taj shdr, ili uskladiti offset račun
+## `Elf::WriteStrtabSection`, `Elf::WriteShstrtabSection`, `Elf::WriteProgramSections`
+
+All previously tracked bugs here are fixed and covered by passing tests
+(groups [10]-[13]): `sh_name` offsets, `sh_link`/`sh_info` for `SHT_STRTAB`
+and `SHT_RELA`, `sh_entsize`, the final byte-writing block's running offset,
+missing `shdrt.push_back` for literal-pool/RELA shdrs, and relocation
+serialization via `ConvertRelocationToRela`.
+
+## `Elf::WriteShstrtabSection` — `e_shstrndx` off by one
+
+- [ ] **`ehdr.e_shstrndx = 3;` (hardcoded).** At the point this runs, `shdrt`
+  only has 3 entries (symtab, strtab, shstrtab itself — pushed just above),
+  so shstrtab's real index is `2`, not `3`. `UnloadLinkable` reads
+  `shdrt[ehdr.e_shstrndx]` to find the section-name string table; with the
+  wrong index it reads whatever shdr comes right after shstrtab instead.
+  Fix: use `(Elf64_Half)(shdrt.size() - 1)` instead of the literal `3`.
+  Test: `test_write_shstrtab_section_sets_correct_e_shstrndx`.
+
+## `Elf::LoadLinkable` (`src/elf/Elf.cpp`, ~line 622) — compiles, but wiring is incomplete
+
+- [ ] **Never persists a complete, final ELF header into `content`.**
+  `WriteShstrtabSection` does call `SetElfHeader` internally, but only to
+  patch `e_shstrndx` onto whatever header already happens to be in
+  `content` at that point — which is all zeros (no magic, no class, no
+  `e_shoff`/`e_shnum`), since nothing has written a real header yet.
+  `LoadLinkable` itself never calls `SetElfHeader`/`SetSectionHeaderTable`
+  with the final `shdrt` (sections + relocations included) and the real
+  `e_shoff`/`e_shnum`. A buffer built via `LoadLinkable` is not yet a valid,
+  readable ELF file. See `test_loadlinkable_with_relocations_no_crash` for
+  the no-crash-only coverage this currently gets, and
+  `write_full_linkable()` in `ElfTest.cpp` for what a correct version needs
+  to do by hand (including a provisional early SHT so relocation symbol
+  lookups succeed before the final one is written).
+- [ ] **`shstrtOffset` local variable is reused for two different
+  quantities.** It's computed as
+  `sizeof(".symtab") + sizeof(".strtab") + sizeof(".shstrt")` and passed as
+  `WriteProgramSections`'s 3rd argument (a small running counter into the
+  shstrtab name buffer). The literal `".shstrt"` is missing `"ab"` — it
+  should be `".shstrtab"` (9 chars + `\0` = 10 bytes, not 8). This undercounts
+  by 2 bytes, so every `sh_name` computed inside `WriteProgramSections`
+  points 2 bytes too early in the shstrtab buffer.
+
+## Relokacije — `addend` (van `Elf.cpp`)
+
+- [ ] `Section::AddSectionRelocation`/`AddPoolRelocation`
+  (`src/data_types/Section.cpp:53-73`) nikad ne postavljaju
+  `relocation->addend` — ostaje `0`. Linker neće imati tačan addend dok se
+  ovo ne reši (videti memoriju `relocation_bugs`).
+
+## Literal pool REL12_PC — slot se izgubi pre linkera
+
+- [ ] **Literal relokacija ne nosi identitet svog pool slota.**
+  `GetLiteralValue` (`src/assembly/Assembly.cpp`) postavlja
+  `rel->symbolName = mCurrentSection->name`, a pool indeks pečati u
+  displacement instrukcije. Za vrednost simbola postoji simbol koji pamti
+  slot (`value`) i preživi merge, ali za literal ne postoji ništa što
+  linker može da veže za konkretan slot. Zato REL12_PC resolver
+  (`Linker::ResolveRelocations`, ~linija 312-328) čita `value` simbola
+  sekcije — istu za sve literale — pa se svi literali razrešavaju kao da
+  pokazuju na isti slot.
+  Predlog: nosi bajt-offset literala u bazenu kroz `rel->addend`, pomeri ga
+  u `MergeSections` za `poolOffset` (bajtovi, kao i ostali pool offseti),
+  koristi ga direktno u REL12_PC resolveru. Alternativa: lokalni anonimni
+  simbol po pool slotu (uniformnije, ali puni tabelu simbola).
+
+## `Linker::MergeSections` — jedinice `value` vs `poolOffset`
+
+- [ ] **`sym.first->value += poolOffset` meša jedinice.**
+  (`src/linker/Linker.cpp:194`) `value` je pool INDEKS (entry broj), a
+  `poolOffset` (`dst->literalPool.size()`) je u BAJTOVIMA. Sabiranje daje
+  pogrešan slot (npr. bazen prvog fajla od 2 unosa = 8 bajtova, pa se indeks
+  0 drugog fajla pomeri na 8 umesto na 2). Fix: `poolOffset / 4`, ili držati
+  `value` u bajtovima svuda dosledno.

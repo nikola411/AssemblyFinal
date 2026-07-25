@@ -94,14 +94,14 @@ std::string ReadString(const std::vector<uint8_t> &src, int start)
 
 int GetSectionIndex(const SectionTable &sections, const std::string& name)
 {
-    // znamo dve stvari: prve dve sekcije koje se pojavljuju ce biti .symtab i .strtab
+    // znamo dve stvari: prve tri sekcije koje se pojavljuju ce biti .symtab, .strtab i .shstrtab
     // nakon toga stavljamo sve sekcije redom kako nailazimo na njih, tako da ce redni broj sekcije u tabeli
-    // sekcijskih zaglavlja biti 1 + index u trenutnom poretku
+    // sekcijskih zaglavlja biti 3 + index u trenutnom poretku
     for (int i = 0; i < sections.size(); i++)
     {
         if (sections[i]->name == name)
         {
-            return i + 1;
+            return i + 3;
         }
     }
 
@@ -128,3 +128,4 @@ void ValidateEhdr(const Elf64_Ehdr& ehdr, size_t fileSize)
     if (ehdr.e_shoff + ehdr.e_shnum * sizeof(Elf64_Shdr) > fileSize)
         throw ElfException(ELF_SHDRT_CORRUPTED);
 }
+

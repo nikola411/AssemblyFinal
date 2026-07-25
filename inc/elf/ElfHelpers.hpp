@@ -3,6 +3,7 @@
 
 #include "ElfDataTypes.hpp"
 #include "Section.hpp"
+#include "Relocation.hpp"
 
 #include <cstring>
 #include <vector>
@@ -25,29 +26,42 @@ int GetSectionIndex(const SectionTable& sections, const std::string& name);
 /*
 Funkcije za proveru tacnosti elf fajla
 */
-
 void ValidateEhdr(const Elf64_Ehdr& ehdr, size_t fileSize);
-
 namespace ElfIO
 {
+    /*
+    JAKO BITNO: svaki write tretira ulazni dst kao strukturu koja moze da poraste
+    */
     template<typename T>
     std::vector<T> ReadTable(Elf64_Off offset, Elf64_Half count, const std::vector<uint8_t>& src)
     {
         std::vector<T> result(count);
-        std::memcpy(result.data(), src.data() + offset, count * sizeof(T));
+        size_t byteCount = (size_t)count * sizeof(T);
+
+        if (offset + byteCount > src.size())
+            return result;
+
+        std::memcpy(result.data(), src.data() + offset, byteCount);
         return result;
     }
 
     template<typename T>
     void WriteTable(Elf64_Off offset, std::vector<uint8_t>& dst, const std::vector<T>& table)
     {
-        std::memcpy(dst.data() + offset, table.data(), table.size() * sizeof(T));
+        size_t byteCnt = table.size() * sizeof(T);
+        if (dst.size() < offset + byteCnt)
+            dst.resize(offset + byteCnt);
+
+        std::memcpy(dst.data() + offset, table.data(), byteCnt);
     }
 
     template<typename T>
     T ReadObject(Elf64_Off offset, const std::vector<uint8_t>& src)
     {
-        T result;
+        T result = {};
+        if (offset + sizeof(T) > src.size())
+            return result;
+
         std::memcpy(&result, src.data() + offset, sizeof(T));
 
         return result;
@@ -56,6 +70,10 @@ namespace ElfIO
     template<typename T>
     void WriteObject(Elf64_Off offset, std::vector<uint8_t>& dst, const T& src)
     {
+        size_t byteCnt = sizeof(T);
+        if (dst.size() < offset + byteCnt)
+            dst.resize(offset + byteCnt);
+
         std::memcpy(dst.data() + offset, &src, sizeof(T));
     }
 
