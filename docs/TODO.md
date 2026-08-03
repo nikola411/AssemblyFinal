@@ -46,12 +46,6 @@ serialization via `ConvertRelocationToRela`.
   by 2 bytes, so every `sh_name` computed inside `WriteProgramSections`
   points 2 bytes too early in the shstrtab buffer.
 
-## Relokacije — `addend` (van `Elf.cpp`)
-
-- [ ] `Section::AddSectionRelocation`/`AddPoolRelocation`
-  (`src/data_types/Section.cpp:53-73`) nikad ne postavljaju
-  `relocation->addend` — ostaje `0`. Linker neće imati tačan addend dok se
-  ovo ne reši (videti memoriju `relocation_bugs`).
 
 ## Literal pool REL12_PC — slot se izgubi pre linkera
 
@@ -77,3 +71,11 @@ serialization via `ConvertRelocationToRela`.
   pogrešan slot (npr. bazen prvog fajla od 2 unosa = 8 bajtova, pa se indeks
   0 drugog fajla pomeri na 8 umesto na 2). Fix: `poolOffset / 4`, ili držati
   `value` u bajtovima svuda dosledno.
+
+## `Elf::LoadBinary` — uskladiti sa promenjenim linker pozivom
+
+- [ ] **Izmeniti `Elf::LoadBinary` (`src/elf/Elf.cpp:599`).** Poziv u linkeru
+  koji učitava binarni fajl je promenjen — sada učitava i adrese kao prve
+  članove niza sa memorijske lokacije. `LoadBinary` treba uskladiti sa tim
+  novim formatom (adrese na početku niza pre ELF sadržaja) umesto da čita
+  `Elf64_Ehdr` odmah sa offseta 0.

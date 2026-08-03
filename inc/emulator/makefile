@@ -10,6 +10,8 @@ INCLUDE += -I$(BASE_DIR)/inc/assembly/
 
 SOURCE = $(wildcard $(BASE_DIR)/src/emulator/*.cpp)
 SOURCE += $(wildcard $(BASE_DIR)/src/instruction/*.cpp)
+SOURCE += $(BASE_DIR)/src/Utility.cpp
+SOURCE += $(BASE_DIR)/src/ErrorHandling.cpp
 
 OUT = $(BASE_DIR)/emulator
 

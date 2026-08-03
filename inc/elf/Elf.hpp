@@ -54,6 +54,7 @@ public:
     void LoadLinkable(const SymbolTable& symTable, const SectionTable& sections);
     void LoadBinary(const std::vector<uint8_t>& content);
     void UnloadLinkable(SymbolTable& symTable, SectionTable& sections);
+    void LoadExecutable(SymbolTable& symTable, SectionTable& sections);
 
 //private:
     // raw file content

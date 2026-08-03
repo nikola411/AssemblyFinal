@@ -271,62 +271,46 @@ void Linker::ResolveRelocations()
             auto symbolIt = std::find_if(symt.begin(), symt.end(), [&](std::pair<Symbol::s_ptr, int>& data) { return data.first->name == rel->symbolName; });
             if (symbolIt == symt.end())
                 throw std::exception();
+
+            Symbol::s_ptr symbol = symbolIt->first;
             // nadji sekciju u kojoj se nalazi simbol
             auto sectionIt = std::find_if(sect.begin(), sect.end(), [&](const Section::s_ptr& s) { return s->name == symbolIt->first->section; });
             if (sectionIt == sect.end())
                 throw std::exception();
 
+            Section::s_ptr symbolSection = *sectionIt;
+
             switch (rel->type)
             {
-                case eRelocationType::REL12_ABS:
-                {
-                    break;
-                }
                 case eRelocationType::REL12_PC:
                 {
                     // relokaciju koju pravimo kada treba da upisemo offset do ulaza u bazen literala
-                    
+                    uint32_t poolAddress = rel->addend;
+                    uint32_t displacement = sec->data.size() - rel->offset + poolAddress - 4;
+
+                    sec->WriteInstructionDisplacement(rel->offset, displacement);
                     break;
                 }
                 case eRelocationType::REL32_ABS:
                 {
+                    if (symbol->isConstant)
+                    {
+                        std::vector<uint8_t> data = IntToByteArray(symbol->value);
+                        sec->WriteData(rel->offset, data);
+
+                        break;
+                    }
+
+                    uint32_t value = symbolSection->ReadPoolEntry(symbol->value);
+                    std::vector<uint8_t> data = IntToByteArray(value);
+                    sec->WriteData(rel->offset, data);
+
                     break;
                 }
                 default:
                     throw std::exception();
             }
         }
-
-        // for (auto& rel : sec->sectionRelocations)
-        // {
-        //     if (rel->type != eRelocationType::REL12_ABS)
-        //         continue;
-
-        //     auto symbolIt = std::find_if(symt.begin(), symt.end(), [&](std::pair<Symbol::s_ptr, int>& data) { return data.first->name == rel->symbolName; });
-        //     if (symbolIt == symt.end())
-        //         throw std::exception();
-
-        //     sec->WriteInstructionDisplacement(rel->offset, symbolIt->first->value);
-        // }
-
-        for (auto& rel : sec->sectionRelocations)
-        {
-            if (rel->type != eRelocationType::REL12_PC)
-                continue;
-
-            auto symbolIt = std::find_if(symt.begin(), symt.end(), [&](std::pair<Symbol::s_ptr, int>& data) { return data.first->name == rel->symbolName; });
-            if (symbolIt == symt.end())
-                throw std::exception();
-
-            // offset lokacije na kojoj radimo relokaciju i velicina cele sekcije. pool se nalaazi na kraju sekcije
-            // treba da upisemo vrednost koju kad dodamo na trenutnu lokaciju dobijamo pocetnu adresu literala u bazenu
-            // u value polju u simbolu nam se nalazi ulaz u bazen
-            uint32_t poolStartOffset = sec->data.size() - rel->offset;
-            uint32_t poolAddress = Section::PoolEntryToAddress(symbolIt->first->value);
-            uint32_t value = poolAddress + poolStartOffset;
-            sec->WriteInstructionDisplacement(rel->offset, value);
-        }
-
     }
 }
 

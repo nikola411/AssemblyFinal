@@ -27,13 +27,13 @@ public:
     void HandleInstruction();
     void HandleDataInstruction();
     void HandleBranchInstruction();
-// virtual for the sake of testing
+
     virtual void CalculateOperandValue(ParserOperand& operand);
     virtual void CalculateDataOperandOffset(ParserOperand& operand);
 
     virtual void WriteInstructionToSection(const AssemblyLine::s_ptr& instruction);
 
-    virtual void GenerateForwardReference(const std::string& name, const ForwardRefferenceType& type);
+    virtual void GenerateForwardReference(const std::string& name, const ForwardReferenceType& type);
 
     virtual uint32_t GetSymbolValue(const std::string& name);
     virtual uint16_t GetSymbolPoolEntry(const Symbol::s_ptr& symbol);
@@ -48,7 +48,7 @@ public:
 
     SectionTable mSectionTable;
     SymbolTable mSymbolTable;
-    ForwardRefferenceTable mForwardRefTable;
+    ForwardReferenceTable mForwardRefTable;
 
     std::vector<AssemblyLine::s_ptr> mProgram;
     bool mEnd; // .END encountered

@@ -23,6 +23,7 @@ bool EndsWith(const std::string& in, const std::string& c1);
 std::vector<std::string> Split(const std::string& input, char delim);
 
 // file helpers
-std::vector<uint8_t> ReadBinaryFile(const std::string& file);
+std::vector<std::vector<uint8_t>>  ReadBinaryFile(const std::string& file);
+
 
 #endif

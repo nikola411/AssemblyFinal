@@ -24,24 +24,24 @@ using RelocationTable = std::vector<Relocation::s_ptr>;
 
 std::string RelocationTableToString(const RelocationTable& table);
 
-enum ForwardRefferenceType
+enum ForwardReferenceType
 {
     FREF32_ABS = 1,
     FREF12_PC = 2,
 };
-struct ForwardRefference
+struct ForwardReference
 {
     std::string symbolName;
     std::string sectionName;
     uint32_t offset;
     std::shared_ptr<AssemblyLine> instruction;
     uint32_t addend;
-    ForwardRefferenceType type;
+    ForwardReferenceType type;
 
-    typedef std::shared_ptr<ForwardRefference> s_ptr;
+    typedef std::shared_ptr<ForwardReference> s_ptr;
 };
 
-using ForwardRefferenceTable = std::vector<ForwardRefference::s_ptr>;
+using ForwardReferenceTable = std::vector<ForwardReference::s_ptr>;
 
 
 #endif

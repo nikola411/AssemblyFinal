@@ -32,17 +32,19 @@ struct Section
     RelocationTable sectionRelocations;
     RelocationTable poolRelocations;
 
-    void AddSectionRelocation(const eRelocationType& type, const std::string& name, int offset);
+    void AddSectionRelocation(const eRelocationType& type, const std::string& name, int offset, int32_t addend = 0);
     void AddPoolRelocation(const eRelocationType& type, const std::string& name, int offset);
 
     void UpdateSectionRelocationsOffsets(int offset);
     void UpdatePoolRelocationsOffsets(int offset);
+    void UpdateSectionRelocationsAddends(int offset);
 
     uint32_t startAddress = 0;
 
     typedef std::shared_ptr<Section> s_ptr;
 
     static Section::s_ptr MergeSections(Section::s_ptr& first, Section::s_ptr& second);
+    static Section::s_ptr FindSection(const std::vector<Section::s_ptr>& table, const std::string& name);
 };
 typedef std::vector<Section::s_ptr> SectionTable;
 

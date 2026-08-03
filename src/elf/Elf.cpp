@@ -78,7 +78,7 @@ size_t Elf::WriteSymtabSection(std::vector<Elf64_Shdr>& shdrt)
         Elf64_Sym sym = {};
         sym.st_name = strt_offset;
         sym.st_info = ELF64_ST_INFO(STB_LOCAL, 0); // vezivanje
-        sym.st_shndx = GetSectionIndex(sections, s->section); // trenutno nula, azuriramo posle
+        sym.st_shndx = s->isConstant ? SHN_ABS : GetSectionIndex(sections, s->section);
         sym.st_value = s->value;
         sym.st_size = 0;
 
@@ -91,8 +91,8 @@ size_t Elf::WriteSymtabSection(std::vector<Elf64_Shdr>& shdrt)
     {
         Elf64_Sym sym = {};
         sym.st_name = strt_offset;
-        sym.st_info = ELF64_ST_INFO(STB_GLOBAL, 0); // vezivanje
-        sym.st_shndx = GetSectionIndex(sections, s->section); // trenutno nula, azuriramo posle
+        sym.st_info = ELF64_ST_INFO(STB_GLOBAL, 0);
+        sym.st_shndx = s->isConstant ? SHN_ABS : GetSectionIndex(sections, s->section);
         sym.st_value = s->value;
         sym.st_size = 0;
 
@@ -114,6 +114,7 @@ size_t Elf::WriteProgramSections(std::vector<Elf64_Shdr> &shdrt, int startOffset
     std::vector<Elf64_Rela> sectionRelocationData;
     std::vector<Elf64_Rela> poolRelocationData;
 
+    // prvi korak: prolazimo kroz data deo sekcije i kreiramo [sectionName]
     for (const auto& sec: sections)
     {
         Elf64_Shdr shdr = {};
@@ -134,6 +135,7 @@ size_t Elf::WriteProgramSections(std::vector<Elf64_Shdr> &shdrt, int startOffset
         shstrtOffset += sec->name.size() + 1;
     }
 
+    // drugi korak: prolazimo kroz pool delove sekcija, i kreiramo [sectionName.pool]
     for (int i = 0; i < sections.size(); i++)
     {
         if (sections[i]->literalPool.empty())
@@ -156,7 +158,7 @@ size_t Elf::WriteProgramSections(std::vector<Elf64_Shdr> &shdrt, int startOffset
 
         shstrtOffset += sections[i]->name.size() + /*.pool*/ 5 + /*\0*/1;
     }
-
+    // treci korak: prolazimo kroz relokacije vezane za data deo sekcije i kreiramo [sectionName.rela]
     for (int i = 0; i < sections.size(); i++)
     {
         if (sections[i]->sectionRelocations.empty())
@@ -186,6 +188,7 @@ size_t Elf::WriteProgramSections(std::vector<Elf64_Shdr> &shdrt, int startOffset
         shstrtOffset += sections[i]->name.size() + /*.rela*/ 5 + /*\0*/1;
     }
 
+    // cetvrti korak: prolazimo kroz relokacije vezane za pool deo sekcije i kreiramo [sectionName.pool.rela]
     for (int i = 0; i < sections.size(); i++)
     {
         if (sections[i]->poolRelocations.empty())
@@ -622,7 +625,7 @@ void Elf::UnloadLinkable(SymbolTable &symTable, SectionTable &sections)
     {
         Symbol::s_ptr curr = std::make_shared<Symbol>();
         curr->defined = sym.st_shndx != Elf64_SHN::SHN_UNDEF;
-        curr->isBig = sym.st_size > 2;
+        curr->isConstant = sym.st_shndx == Elf64_SHN::SHN_ABS;
         curr->isGlobal = ELF64_ST_BIND(sym.st_info) == Elf64_Sym_Binding::STB_GLOBAL;
         curr->isExtern = ELF64_ST_BIND(sym.st_info) == Elf64_Sym_Binding::STB_WEAK;
         curr->offset = sym.st_value;

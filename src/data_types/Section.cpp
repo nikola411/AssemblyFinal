@@ -1,6 +1,7 @@
 #include "Section.hpp"
 
 #include "Utility.hpp"
+#include <algorithm>
 
 
 void Section::AppendData(const std::vector<BYTE>& inData)
@@ -60,13 +61,14 @@ ADDRESS Section::PoolEntryToAddress(uint32_t entry)
     return entry * 4;
 }
 
-void Section::AddSectionRelocation(const eRelocationType &type, const std::string &name, int offset)
+void Section::AddSectionRelocation(const eRelocationType &type, const std::string &name, int offset, int32_t addend)
 {
     Relocation::s_ptr relocation = std::make_shared<Relocation>();
 
     relocation->type = type;
     relocation->offset = offset;
     relocation->symbolName = name;
+    relocation->addend = addend;
 
     sectionRelocations.push_back(relocation);
 }
@@ -98,6 +100,15 @@ void Section::UpdatePoolRelocationsOffsets(int offset)
     }
 }
 
+void Section::UpdateSectionRelocationsAddends(int offset)
+{
+    for (auto rel : sectionRelocations)
+    {
+        if (rel->type == eRelocationType::REL12_PC)
+            rel->addend += offset;
+    }
+}
+
 Section::s_ptr Section::MergeSections(Section::s_ptr &first, Section::s_ptr &second)
 {
     Section::s_ptr result = std::make_shared<Section>(*first);
@@ -110,6 +121,8 @@ Section::s_ptr Section::MergeSections(Section::s_ptr &first, Section::s_ptr &sec
         second->sectionRelocations.begin(), second->sectionRelocations.end());
 
     int poolOffset = first->literalPool.size();
+    second->UpdateSectionRelocationsAddends(poolOffset);
+
     result->literalPool.insert(result->literalPool.end(),
         second->literalPool.begin(), second->literalPool.end());
 
@@ -118,6 +131,17 @@ Section::s_ptr Section::MergeSections(Section::s_ptr &first, Section::s_ptr &sec
         second->poolRelocations.begin(), second->poolRelocations.end());
 
     return result;
+}
+
+Section::s_ptr Section::FindSection(const std::vector<Section::s_ptr>& table, const std::string &name)
+{
+    auto iter = std::find_if(table.begin(), table.end(),
+        [&](const Section::s_ptr& sec) { return sec->name == name; });
+
+    if (iter == table.end())
+        return nullptr;
+
+    return *iter;
 }
 
 /// @brief vraca index u bazenu. index je broj uint32_t vrednosti (4 bajta) pre odredjenog literala

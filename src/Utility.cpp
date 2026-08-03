@@ -7,7 +7,7 @@
 
 #include <iomanip>
 #include <string>
-
+#include <fstream>
 
 
 std::string SymbolTableToString(const SymbolTable& table)
@@ -230,5 +230,34 @@ std::vector<std::string> Split(const std::string& input, char delim)
 
     result.push_back(input.substr(last)); // last token
     return result;
+}
+
+/* citamo binarni fajl koji ce da ima sledeci format:
+hhhhhhhh hh hh hh hh hh hh hh hh  hh hh hh hh hh hh hh hh
+gde je h neka heksadecimalna cifra koja predstavlja 4bita
+*/
+std::vector<std::vector<uint8_t>> ReadBinaryFile(const std::string &path)
+{
+    std::vector<std::vector<uint8_t>> output = {};
+    std::ifstream file(path);
+    if (!file.is_open())
+        return output;
+
+    std::string line;
+    while (std::getline(file, line))
+    {
+        std::vector<uint8_t> curr = {};
+        auto parts = Split(line, ' ');
+        for (int i = 0; i < (int)parts.size(); i++)
+        {
+            if (parts[i].empty())
+                continue;
+            curr.push_back(std::stoi(parts[i], nullptr, 16));
+        }
+
+        output.push_back(curr);
+    }
+
+    return output;
 }
 

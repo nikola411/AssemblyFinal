@@ -12,7 +12,7 @@ struct Symbol
     std::string section;
 
     uint32_t offset = 0;
-    uint16_t value = 0; // pool entry
+    uint32_t value = 0; // pool entry
     bool defined = false;
     bool isGlobal = false;
     bool isExtern = false;

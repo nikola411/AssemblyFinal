@@ -15,6 +15,7 @@
         throw AssemblyException(ExceptionMessage::LiteralOffsetTooBig, { std::to_string(value) });
 
 #include <chrono>
+#include <algorithm>
 
 using namespace Conversion;
 
@@ -171,6 +172,7 @@ void Assembly::HandleDirective()
             entry = std::make_shared<Symbol>();
             entry->name = operands.front().value;
             entry->value = std::stoi(operands.back().value, nullptr, 16);
+            entry->defined = true;
             entry->isConstant = true;
             mSymbolTable.push_back(entry);
         }
@@ -225,7 +227,7 @@ uint32_t Assembly::GetSymbolValue(const std::string& name)
 
     if (!entry || !entry->defined)
     {
-        GenerateForwardReference(name, ForwardRefferenceType::FREF12_PC);
+        GenerateForwardReference(name, ForwardReferenceType::FREF12_PC);
         return value;
     }
 
@@ -267,7 +269,7 @@ uint32_t Assembly::GetAbsoluteSymbolValue(const Symbol::s_ptr& entry)
 
     if (!entry || !entry->defined)
     {
-        GenerateForwardReference(entry->name, ForwardRefferenceType::FREF32_ABS);
+        GenerateForwardReference(entry->name, ForwardReferenceType::FREF32_ABS);
         return value;
     }
 
@@ -306,9 +308,10 @@ uint16_t Assembly::GetLiteralValue(ParserOperand &operand)
     if (poolEntry == -1)
         poolEntry = mCurrentSection->InsertLiteralInPool(value);
 
-    //mCurrentSection->AddSectionRelocation(eRelocationType::REL12_PC, literal, mCurrentSection->locationCounter);
+    uint32_t poolAddress = Section::PoolEntryToAddress(poolEntry);
+    mCurrentSection->AddSectionRelocation(eRelocationType::REL12_PC, mCurrentSection->name, mCurrentSection->locationCounter, poolAddress);
 
-    return Section::AddressToPoolEntry(poolEntry);
+    return poolAddress;
 }
 
 void Assembly::CalculateOperandValue(ParserOperand& operand)
@@ -379,9 +382,9 @@ void Assembly::WriteInstructionToSection(const AssemblyLine::s_ptr& instruction)
     }
 }
 
-void Assembly::GenerateForwardReference(const std::string& name, const ForwardRefferenceType& type)
+void Assembly::GenerateForwardReference(const std::string& name, const ForwardReferenceType& type)
 {
-    auto fref = std::make_shared<ForwardRefference>();
+    auto fref = std::make_shared<ForwardReference>();
     fref->offset = mCurrentSection->locationCounter;
     fref->sectionName = mCurrentSection->name;
     fref->symbolName = name;
@@ -398,49 +401,77 @@ inline void Assembly::IncrementLocationCounter(uint32_t amount)
 
 void Assembly::ContinueParsing()
 {
-    for (ForwardRefference::s_ptr& fref : mForwardRefTable)
+    for (ForwardReference::s_ptr& fref : mForwardRefTable)
     {
         std::string symbolName = fref->symbolName;
         auto entry = GetSymbol(mSymbolTable, symbolName);
         if (!entry)
             throw AssemblyException(ExceptionMessage::UndefinedSymbol, { symbolName });
 
+        Section::s_ptr section = Section::FindSection(mSectionTable, fref->sectionName);
+        if (section == nullptr)
+            throw std::exception();
 
-        // dodaj find_if umesto for loop-a, citljivije
-        for (auto& section : mSectionTable)
+        if (fref->type == ForwardReferenceType::FREF32_ABS)
         {
-            if (section->name != fref->sectionName)
-                continue;
+            std::vector<uint8_t> data = { 0, 0, 0, 0 };
 
-            // ukoliko je simbol nadjen u drugoj sekciji, moramo da generisemo relokaciju
-            if (entry->section != section->name)
+            if (entry->isConstant)
+                data = IntToByteArray(entry->value);
+
+            if (entry->defined)
             {
-                auto poolEntry = section->InsertLiteralInPool(0);
-                int16_t poolAddress = Section::PoolEntryToAddress(poolEntry);
+                Section::s_ptr symbolSection = Section::FindSection(mSectionTable, entry->section);
+                if (symbolSection == nullptr)
+                    throw std::exception();
 
-                //section->AddSectionRelocation(eRelocationType::REL12_PC, entry->name, fref->offset);
-                section->AddPoolRelocation(eRelocationType::REL32_ABS, entry->name, poolAddress);
-                break;
+                uint32_t value = symbolSection->ReadPoolEntry(entry->value);
+                data = IntToByteArray(value);
             }
 
-            // vrednost operanda je velika, moramo da generisemo relokaciju i da nadjemo ulaz u bazenu literala
-            auto poolEntry = section->IsLiteralPresentInPool(entry->offset);
-            if (poolEntry == -1)
-                poolEntry = section->InsertLiteralInPool(entry->offset);
+            section->AddSectionRelocation(eRelocationType::REL32_ABS, entry->name, fref->offset);
+            section->WriteData(fref->offset, data);
 
-            auto poolAddress = Section::PoolEntryToAddress(poolEntry);
+            continue;
+        }
 
-            int16_t displacement = (section->locationCounter + poolAddress) - fref->offset - 4;
-            CHECK_SMALL_VALUE(displacement);
-            section->WriteInstructionDisplacement(fref->offset, displacement & 0xFFF);
+        // fref->type == ForwardReferenceType::FREF12_PC
 
-            // generisemo relokaciju na offsetu gde je generisana fref, jer cemo morati da upisemo novi offset
-            // kada se sekcije spoje u linking fazi
-            //section->AddSectionRelocation(eRelocationType::REL12_PC, entry->name, fref->offset);
+        if (entry->isConstant)
+        {
+            CHECK_SMALL_VALUE(entry->value);
+            section->WriteInstructionDisplacement(fref->offset, entry->value & 0xFFF);
+
+            continue;
+        }
+
+        // ukoliko je simbol nadjen u drugoj sekciji, moramo da generisemo relokaciju
+        if (entry->section != section->name)
+        {
+            auto poolEntry = section->InsertLiteralInPool(0);
+            uint32_t poolAddress = Section::PoolEntryToAddress(poolEntry);
+
+            section->AddSectionRelocation(eRelocationType::REL12_PC, entry->name, fref->offset, poolAddress);
             section->AddPoolRelocation(eRelocationType::REL32_ABS, entry->name, poolAddress);
-
             break;
         }
+
+        // vrednost operanda je velika, moramo da generisemo relokaciju i da nadjemo ulaz u bazenu literala
+        auto poolEntry = section->IsLiteralPresentInPool(entry->offset);
+        if (poolEntry == -1)
+            poolEntry = section->InsertLiteralInPool(entry->offset);
+
+        uint32_t poolAddress = Section::PoolEntryToAddress(poolEntry);
+
+        int16_t displacement = (section->locationCounter - fref->offset) + poolAddress - 4;
+        CHECK_SMALL_VALUE(displacement);
+        section->WriteInstructionDisplacement(fref->offset, displacement & 0xFFF);
+
+        // generisemo relokaciju na offsetu gde je generisana fref, jer cemo morati da upisemo novi offset
+        // kada se sekcije spoje u linking fazi
+        section->AddSectionRelocation(eRelocationType::REL12_PC, entry->name, fref->offset, poolAddress);
+        section->AddPoolRelocation(eRelocationType::REL32_ABS, entry->name, poolAddress);
+
     }
 
     CheckForErrors();
