@@ -20,13 +20,6 @@ enum CauseValues
     SW_INT = 4
 };
 
-namespace Interrupts
-{
-    // deklarisemo extern da najavimo postojanje, definicija u cpp fajlu i globalna
-    extern std::atomic<bool> timerInterrupt;
-    extern std::atomic<bool> terminalInterrupt;
-};
-
 class Emulator
 {
 public:

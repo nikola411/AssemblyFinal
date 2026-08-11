@@ -688,3 +688,6 @@ void Elf::UnloadLinkable(SymbolTable &symTable, SectionTable &sections)
     }
 }
 
+void Elf::LoadExecutable(SymbolTable &symTable, SectionTable &sections)
+{
+}

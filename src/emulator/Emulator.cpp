@@ -9,13 +9,6 @@
 
 #include "Instruction.hpp"
 
-namespace Interrupts
-{
-    // deklarisemo extern da najavimo postojanje, definicija u cpp fajlu i globalna
-    extern std::atomic<bool> timerInterrupt{false};
-    extern std::atomic<bool> terminalInterrupt{false};
-};
-
 Emulator::Emulator()
 {
     for (int i = 0; i < 16; i++)

@@ -20,11 +20,15 @@ int main(int argc, char* argv[])
     Timer timer(memory);
     Terminal terminal(memory);
 
-    auto timThread = std::thread(&Timer::DoWork, timer);
+    auto timThread = std::thread(&Timer::WorkLoop, timer);
+    auto termThread = std::thread(&Terminal::WorkLoop, terminal);
 
     emulator.Load(argv[1]);
     emulator.Execute();
     emulator.Finish();
+
+    timThread.join();
+    termThread.join();
 
     std::cout << "\n";
     return 0;

@@ -1,5 +1,7 @@
 #include "Terminal.hpp"
 
+#include "DataTypes.hpp"
+
 #include <termios.h>
 #include <unistd.h>
 #include <cstdio>
@@ -8,13 +10,19 @@
 Terminal::Terminal(std::unordered_map<uint32_t, uint8_t>& memory)
 {
     //nas terminal kontroler init
+    term_in.resize(4);
+    term_out.resize(4);
+
     for (int i = 0; i < 4; i++)
     {
         memory[0xFFFFFF00 + i] = 0;
         memory[0xFFFFFF04 + i] = 0;
 
-        term_in[i] = std::make_shared<uint8_t>(memory[0xFFFFFF00 + i]);
-        term_out[i] = std::make_shared<uint8_t>(memory[0xFFFFFF04 + i]);
+        // pokazujemo na sam bajt u mapi, zato prazan deleter — memoriju ne
+        // posedujemo. Pokazivaci na elemente unordered_map ostaju validni i
+        // posle rehash-a, a emulator nikad ne brise elemente.
+        term_in[i] = BytePtr(&memory[0xFFFFFF00 + i], [](uint8_t*) {});
+        term_out[i] = BytePtr(&memory[0xFFFFFF04 + i], [](uint8_t*) {});
     }
 
     // termios init
@@ -38,6 +46,7 @@ void Terminal::WorkLoop()
     {
         std::lock_guard<std::mutex> lock(memoryMutex);
         *term_in[0] = c;
+        Interrupts::terminalInterrupt.exchange(true);
     }
 
     uint8_t out = 0;

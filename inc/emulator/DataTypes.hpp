@@ -16,6 +16,13 @@ const uint32_t MEMORY_MAPPED_REGISTERS = 0xFFFFFF00;
 
 inline std::mutex memoryMutex;
 inline std::mutex registerMutex;
+namespace Interrupts
+{
+    // deklarisemo extern da najavimo postojanje, definicija u cpp fajlu i globalna
+    inline std::atomic<bool> timerInterrupt = { false };
+    inline std::atomic<bool> terminalInterrupt = { false };
+};
+
 
 
 #endif
